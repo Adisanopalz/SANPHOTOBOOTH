@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SANPHOTOBOOTH - Pro Organizer Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f1a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #1e293b;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 4px solid #334155;
+            aspect-ratio: 4/3;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        /* Filter Efek */
+        .filter-none { filter: none; }
+        .filter-grayscale { filter: grayscale(100%); }
+        .filter-sepia { filter: sepia(100%); }
+        .filter-vintage { filter: sepia(50%) contrast(120%) brightness(90%); }
+        .filter-warm { filter: saturate(150%) sepia(20%); }
+        .filter-cool { filter: hue-rotate(180deg) brightness(110%); }
+
+        .flash-effect {
+            position: absolute;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        @keyframes flashAnim {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .animate-flash {
+            animation: flashAnim 0.3s ease-out;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 10px;
+        }
+
+        .active-session-ring {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            border-color: #3b82f6 !important;
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6">
+
+    <!-- Header -->
+    <header class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-800 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                SANPHOTOBOOTH <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded ml-2">ORGANIZER</span>
+            </h1>
+            <p class="text-slate-500 text-sm">Custom Sessions • Auto-Capture Countdown • Cloud Sync</p>
+        </div>
+        
+        <div id="sessionTimerDisplay" class="hidden flex items-center gap-4 bg-red-500/10 border border-red-500/50 px-6 py-2 rounded-full animate-pulse">
+            <div class="flex flex-col">
+                <span class="text-[10px] text-red-400 font-bold uppercase">Sisa Waktu Sesi</span>
+                <span class="text-red-500 font-bold text-xl leading-none" id="timerClock">00:00</span>
+            </div>
+            <div class="h-2 w-24 bg-slate-800 rounded-full overflow-hidden">
+                <div id="timerProgress" class="h-full bg-red-500 w-full transition-all"></div>
+            </div>
+        </div>
+
+        <div id="cloudStatus" class="flex items-center gap-2 text-[10px] text-slate-500 font-bold bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800">
+            <span id="authIndicator" class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+            <span id="authText">MENGHUBUNGKAN...</span>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Kolom Kiri: Antrean & History -->
+        <div class="lg:col-span-3 flex flex-col gap-4">
+            <div class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800 flex flex-col h-[680px]">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fas fa-cloud text-blue-400"></i> Cloud Sessions
+                    </h2>
+                </div>
+                
+                <!-- Input Sesi Baru -->
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="nameInput" placeholder="Nama Album/Sesi..." 
+                           class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="addSessionBtn" onclick="addToQueue()" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg transition disabled:opacity-50">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+                <div id="sessionList" class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                    <div class="flex justify-center py-10"><div class="loading-spinner"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kolom Tengah: Kamera -->
+        <div class="lg:col-span-6 flex flex-col items-center">
+            <div class="video-container mb-4" id="camBox">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="canvas" class="hidden"></canvas>
+                <div id="flash" class="flash-effect"></div>
+                
+                <!-- Status Overlay -->
+                <div id="autoStatus" class="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full hidden flex items-center gap-2 z-10">
+                    <span class="w-2 h-2 bg-white rounded-full animate-ping"></span> AUTO MODE
+                </div>
+
+                <!-- Hitung Mundur Jepret -->
+                <div id="nextPhotoOverlay" class="absolute top-4 right-4 bg-blue-600/90 text-white px-4 py-1 rounded-full hidden flex items-center gap-2 z-10 shadow-lg border border-blue-400">
+                    <i class="fas fa-camera text-xs"></i>
+                    <span class="text-xs font-bold">NEXT: <span id="nextPhotoTimer">10</span>s</span>
+                </div>
+                
+                <!-- Overlay Countdown Besar -->
+                <div id="countdown" class="absolute inset-0 flex items-center justify-center text-9xl font-bold text-white hidden pointer-events-none drop-shadow-lg z-20">3</div>
+            </div>
+
+            <!-- Kontrol Utama -->
+            <div class="w-full bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex flex-col gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] text-slate-500 font-bold uppercase">Efek Filter</label>
+                        <select id="filterSelect" class="bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 focus:outline-none">
+                            <option value="filter-none">Normal</option>
+                            <option value="filter-grayscale">B&W</option>
+                            <option value="filter-sepia">Sepia</option>
+                            <option value="filter-vintage">Vintage</option>
+                            <option value="filter-warm">Warm</option>
+                            <option value="filter-cool">Cool</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] text-slate-500 font-bold uppercase">Durasi Sesi</label>
+                        <select id="sessionDurationSelect" class="bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 focus:outline-none">
+                            <option value="60">1 Menit</option>
+                            <option value="180" selected>3 Menit</option>
+                            <option value="300">5 Menit</option>
+                        </select>
+                    </div>
+
+                    <div class="text-right">
+                        <span id="activeNameDisplay" class="text-blue-400 font-bold block truncate">Pilih Sesi</span>
+                        <span class="text-[10px] text-slate-500">TARGET ALBUM</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <button id="manualSnapBtn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50">
+                        <i class="fas fa-camera"></i> JEPRET MANUAL
+                    </button>
+                    <button id="startAutoBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-play"></i> START AUTO SESSION
+                    </button>
+                </div>
+                <p class="text-[10px] text-center text-slate-500 italic">Sesi otomatis akan mengambil foto setiap 10 detik dengan hitung mundur.</p>
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Galeri -->
+        <div class="lg:col-span-3">
+            <div class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800 flex flex-col h-[680px]">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fas fa-images text-purple-400"></i> Isi Album
+                    </h2>
+                    <span id="photoCount" class="bg-purple-500/20 text-purple-400 text-[10px] px-2 py-1 rounded-full font-bold">0</span>
+                </div>
+                
+                <div id="gallery" class="grid grid-cols-2 gap-2 overflow-y-auto custom-scrollbar pr-1">
+                    <div class="col-span-2 text-center text-slate-600 italic text-xs py-20">Pilih album untuk melihat foto</div>
+                </div>
+
+                <div class="mt-auto pt-4 flex flex-col gap-2">
+                   <button id="downloadAlbumBtn" onclick="downloadAlbum()" disabled class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg transition border border-slate-700 disabled:opacity-30">
+                       <i class="fas fa-download mr-1"></i> Unduh Satu Album
+                   </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Notifikasi -->
+    <div id="msgBox" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl border border-slate-700 transform translate-y-24 transition-transform duration-300 z-[100] flex items-center gap-3">
+        <i class="fas fa-info-circle"></i>
+        <span id="msgContent">Pesan</span>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, where, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Config
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'san-photobooth-v1';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // State Global
+        let currentUser = null;
+        let activeSessionId = null;
+        let isSessionRunning = false;
+        let isCameraActive = false;
+        
+        let mainTimerInterval = null;
+        let photoCycleInterval = null;
+        
+        let sessions = [];
+        let photos = [];
+
+        // UI References
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const gallery = document.getElementById('gallery');
+        const sessionList = document.getElementById('sessionList');
+        const nameInput = document.getElementById('nameInput');
+        const timerDisplay = document.getElementById('sessionTimerDisplay');
+        const timerClock = document.getElementById('timerClock');
+        const timerProgress = document.getElementById('timerProgress');
+        const autoStatus = document.getElementById('autoStatus');
+        const activeNameDisplay = document.getElementById('activeNameDisplay');
+        const authIndicator = document.getElementById('authIndicator');
+        const authText = document.getElementById('authText');
+        const countdownOverlay = document.getElementById('countdown');
+        const nextPhotoOverlay = document.getElementById('nextPhotoOverlay');
+        const nextPhotoTimer = document.getElementById('nextPhotoTimer');
+        const durationSelect = document.getElementById('sessionDurationSelect');
+
+        // Init Auth
+        async function init() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth error:", error);
+                showMsg("Gagal terhubung ke Cloud!", "fa-times", "text-red-500");
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                authIndicator.classList.replace('bg-yellow-500', 'bg-green-500');
+                authText.innerText = "CLOUD AKTIF";
+                startCamera();
+                listenToSessions();
+            }
+        });
+
+        // Kamera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                    audio: false 
+                });
+                video.srcObject = stream;
+                isCameraActive = true;
+            } catch (err) {
+                showMsg("Kamera tidak ditemukan!", "fa-times-circle", "text-red-500");
+            }
+        }
+
+        // Firebase Sync
+        function listenToSessions() {
+            const sessionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'sessions');
+            onSnapshot(sessionsRef, (snapshot) => {
+                sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                sessions.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                renderSessionsUI();
+            });
+        }
+
+        function listenToPhotos(sessionId) {
+            const photosRef = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+            onSnapshot(photosRef, (snapshot) => {
+                photos = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(p => p.sessionId === sessionId);
+                photos.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                renderGalleryUI();
+            });
+        }
+
+        // UI Render
+        function renderSessionsUI() {
+            sessionList.innerHTML = '';
+            if (sessions.length === 0) {
+                sessionList.innerHTML = '<div class="text-slate-600 text-xs italic text-center py-10">Daftar kosong</div>';
+                return;
+            }
+            sessions.forEach(session => {
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-xl border border-slate-800 bg-slate-800/20 cursor-pointer transition flex items-center justify-between hover:bg-slate-800/40 ${activeSessionId === session.id ? 'active-session-ring' : ''}`;
+                div.onclick = () => selectSession(session.id, session.name);
+                div.innerHTML = `
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="text-sm font-bold truncate">${session.name}</span>
+                        <span class="text-[10px] text-slate-500">Cloud Album</span>
+                    </div>
+                    <button class="delete-btn text-slate-600 hover:text-red-400 p-2" data-id="${session.id}">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                div.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteSession(session.id); };
+                sessionList.appendChild(div);
+            });
+        }
+
+        function renderGalleryUI() {
+            gallery.innerHTML = '';
+            document.getElementById('photoCount').innerText = photos.length;
+            if (photos.length === 0) {
+                gallery.innerHTML = '<div class="col-span-2 text-center text-slate-600 italic text-xs py-20">Album Kosong</div>';
+                return;
+            }
+            photos.forEach(photo => {
+                const div = document.createElement('div');
+                div.className = "relative group cursor-pointer animate-in fade-in duration-500";
+                div.innerHTML = `<img src="${photo.url}" class="w-full aspect-square object-cover rounded-lg border border-slate-700 shadow-lg">`;
+                div.onclick = () => window.open(photo.url);
+                gallery.appendChild(div);
+            });
+        }
+
+        // Logika Organiser: Sesi & Hitung Mundur
+        window.startAutoSession = () => {
+            if (!activeSessionId) return showMsg("Pilih album dulu!", "fa-user-plus", "text-yellow-500");
+            if (isSessionRunning) return;
+
+            const totalDuration = parseInt(durationSelect.value);
+            isSessionRunning = true;
+            toggleControls(true);
+            
+            let timeLeft = totalDuration;
+            timerDisplay.classList.remove('hidden');
+            autoStatus.classList.remove('hidden');
+            nextPhotoOverlay.classList.remove('hidden');
+
+            // Timer Utama Sesi
+            mainTimerInterval = setInterval(() => {
+                timeLeft--;
+                const mins = Math.floor(timeLeft / 60);
+                const secs = timeLeft % 60;
+                timerClock.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+                timerProgress.style.width = `${(timeLeft / totalDuration) * 100}%`;
+
+                if (timeLeft <= 0) stopSession();
+            }, 1000);
+
+            // Loop Jepret Otomatis Setiap 10 Detik
+            startNewCaptureCycle();
+            showMsg(`Sesi ${totalDuration/60} menit dimulai!`, "fa-play");
+        };
+
+        function startNewCaptureCycle() {
+            if (!isSessionRunning) return;
+
+            let countdown = 10;
+            nextPhotoTimer.innerText = countdown;
+
+            photoCycleInterval = setInterval(() => {
+                countdown--;
+                nextPhotoTimer.innerText = countdown;
+
+                // Tampilkan hitung mundur besar saat sisa 3 detik
+                if (countdown <= 3 && countdown > 0) {
+                    countdownOverlay.innerText = countdown;
+                    countdownOverlay.classList.remove('hidden');
+                } else {
+                    countdownOverlay.classList.add('hidden');
+                }
+
+                if (countdown <= 0) {
+                    clearInterval(photoCycleInterval);
+                    takeSnapshot(); // Jepret!
+                    
+                    // Ulangi siklus jika sesi masih berjalan
+                    if (isSessionRunning) {
+                        setTimeout(startNewCaptureCycle, 500); 
+                    }
+                }
+            }, 1000);
+        }
+
+        function stopSession() {
+            clearInterval(mainTimerInterval);
+            clearInterval(photoCycleInterval);
+            isSessionRunning = false;
+            toggleControls(false);
+            timerDisplay.classList.add('hidden');
+            autoStatus.classList.add('hidden');
+            nextPhotoOverlay.classList.add('hidden');
+            countdownOverlay.classList.add('hidden');
+            showMsg("Sesi Berakhir!", "fa-flag-checkered");
+        }
+
+        // Actions
+        window.addToQueue = async () => {
+            const name = nameInput.value.trim();
+            if (!name) return;
+            const sessionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'sessions');
+            await addDoc(sessionsRef, { name: name, createdAt: Timestamp.now() });
+            nameInput.value = '';
+            showMsg("Album Baru Cloud Dibuat");
+        };
+
+        window.takeSnapshot = async () => {
+            if (!isCameraActive || !activeSessionId) return;
+
+            // Flash visual
+            const flash = document.getElementById('flash');
+            flash.classList.add('animate-flash');
+            setTimeout(() => flash.classList.remove('animate-flash'), 300);
+
+            const ctx = canvas.getContext('2d');
+            canvas.width = 1024;
+            canvas.height = 768;
+            ctx.filter = getComputedStyle(video).filter;
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const url = canvas.toDataURL('image/jpeg', 0.7);
+            
+            const photosRef = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+            await addDoc(photosRef, {
+                sessionId: activeSessionId,
+                url: url,
+                createdAt: Timestamp.now()
+            });
+        };
+
+        function selectSession(id, name) {
+            if (isSessionRunning) return showMsg("Sesi Sedang Berjalan!");
+            activeSessionId = id;
+            activeNameDisplay.innerText = name;
+            document.getElementById('downloadAlbumBtn').disabled = false;
+            listenToPhotos(id);
+            renderSessionsUI();
+        }
+
+        async function deleteSession(id) {
+            if (!confirm("Hapus album ini secara permanen?")) return;
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sessions', id));
+        }
+
+        window.downloadAlbum = () => {
+            showMsg("Menyiapkan unduhan...");
+            photos.forEach((photo, i) => {
+                setTimeout(() => {
+                    const a = document.createElement('a');
+                    a.href = photo.url;
+                    a.download = `${activeNameDisplay.innerText}_${i+1}.jpg`;
+                    a.click();
+                }, i * 400);
+            });
+        };
+
+        function toggleControls(disabled) {
+            document.getElementById('startAutoBtn').disabled = disabled;
+            document.getElementById('manualSnapBtn').disabled = disabled;
+            document.getElementById('filterSelect').disabled = disabled;
+            durationSelect.disabled = disabled;
+            nameInput.disabled = disabled;
+        }
+
+        function showMsg(text, icon="fa-info-circle", color="text-blue-400") {
+            const msgBox = document.getElementById('msgBox');
+            document.getElementById('msgContent').innerText = text;
+            msgBox.querySelector('i').className = `fas ${icon} ${color}`;
+            msgBox.classList.remove('translate-y-24');
+            msgBox.classList.add('translate-y-0');
+            setTimeout(() => { msgBox.classList.remove('translate-y-0'); msgBox.classList.add('translate-y-24'); }, 3000);
+        }
+
+        document.getElementById('filterSelect').onchange = (e) => video.className = e.target.value;
+        document.getElementById('manualSnapBtn').onclick = window.takeSnapshot;
+        document.getElementById('startAutoBtn').onclick = window.startAutoSession;
+
+        init();
+    </script>
+</body>
+</html>
