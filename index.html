@@ -3,537 +3,414 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SANPHOTOBOOTH - Pro Organizer Edition</title>
+    <title>SanPhotobooth</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #0b0f1a;
-            color: #f8fafc;
-            overflow-x: hidden;
-        }
-
-        .video-container {
-            position: relative;
-            width: 100%;
-            background: #1e293b;
-            border-radius: 1.5rem;
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-            border: 4px solid #334155;
-            aspect-ratio: 4/3;
-        }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
-
-        /* Filter Efek */
-        .filter-none { filter: none; }
-        .filter-grayscale { filter: grayscale(100%); }
-        .filter-sepia { filter: sepia(100%); }
-        .filter-vintage { filter: sepia(50%) contrast(120%) brightness(90%); }
-        .filter-warm { filter: saturate(150%) sepia(20%); }
-        .filter-cool { filter: hue-rotate(180deg) brightness(110%); }
-
-        .flash-effect {
-            position: absolute;
-            inset: 0;
-            background: white;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 50;
-        }
-
-        @keyframes flashAnim {
-            0% { opacity: 0; }
-            50% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-
-        .animate-flash {
-            animation: flashAnim 0.3s ease-out;
-        }
-
+        /* Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar {
-            width: 5px;
+            width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1e293b;
+            background: rgba(31, 41, 55, 0.5); 
+            border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 10px;
+            background: rgba(75, 85, 99, 0.8); 
+            border-radius: 4px;
         }
-
-        .active-session-ring {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-            border-color: #3b82f6 !important;
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 1); 
         }
         
-        .loading-spinner {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hide { display: none !important; }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-6">
+<body class="min-h-screen bg-gray-950 text-white font-sans flex flex-col items-center py-6 px-4">
 
     <!-- Header -->
-    <header class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center mb-6 gap-4">
-        <div>
-            <h1 class="text-3xl font-800 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-                SANPHOTOBOOTH <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded ml-2">ORGANIZER</span>
-            </h1>
-            <p class="text-slate-500 text-sm">Custom Sessions • Auto-Capture Countdown • Cloud Sync</p>
-        </div>
-        
-        <div id="sessionTimerDisplay" class="hidden flex items-center gap-4 bg-red-500/10 border border-red-500/50 px-6 py-2 rounded-full animate-pulse">
-            <div class="flex flex-col">
-                <span class="text-[10px] text-red-400 font-bold uppercase">Sisa Waktu Sesi</span>
-                <span class="text-red-500 font-bold text-xl leading-none" id="timerClock">00:00</span>
-            </div>
-            <div class="h-2 w-24 bg-slate-800 rounded-full overflow-hidden">
-                <div id="timerProgress" class="h-full bg-red-500 w-full transition-all"></div>
-            </div>
-        </div>
-
-        <div id="cloudStatus" class="flex items-center gap-2 text-[10px] text-slate-500 font-bold bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800">
-            <span id="authIndicator" class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-            <span id="authText">MENGHUBUNGKAN...</span>
-        </div>
-    </header>
-
-    <main class="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Kolom Kiri: Antrean & History -->
-        <div class="lg:col-span-3 flex flex-col gap-4">
-            <div class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800 flex flex-col h-[680px]">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold flex items-center gap-2">
-                        <i class="fas fa-cloud text-blue-400"></i> Cloud Sessions
-                    </h2>
-                </div>
-                
-                <!-- Input Sesi Baru -->
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="nameInput" placeholder="Nama Album/Sesi..." 
-                           class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="addSessionBtn" onclick="addToQueue()" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg transition disabled:opacity-50">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-
-                <div id="sessionList" class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
-                    <div class="flex justify-center py-10"><div class="loading-spinner"></div></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Kolom Tengah: Kamera -->
-        <div class="lg:col-span-6 flex flex-col items-center">
-            <div class="video-container mb-4" id="camBox">
-                <video id="webcam" autoplay playsinline></video>
-                <canvas id="canvas" class="hidden"></canvas>
-                <div id="flash" class="flash-effect"></div>
-                
-                <!-- Status Overlay -->
-                <div id="autoStatus" class="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full hidden flex items-center gap-2 z-10">
-                    <span class="w-2 h-2 bg-white rounded-full animate-ping"></span> AUTO MODE
-                </div>
-
-                <!-- Hitung Mundur Jepret -->
-                <div id="nextPhotoOverlay" class="absolute top-4 right-4 bg-blue-600/90 text-white px-4 py-1 rounded-full hidden flex items-center gap-2 z-10 shadow-lg border border-blue-400">
-                    <i class="fas fa-camera text-xs"></i>
-                    <span class="text-xs font-bold">NEXT: <span id="nextPhotoTimer">10</span>s</span>
-                </div>
-                
-                <!-- Overlay Countdown Besar -->
-                <div id="countdown" class="absolute inset-0 flex items-center justify-center text-9xl font-bold text-white hidden pointer-events-none drop-shadow-lg z-20">3</div>
-            </div>
-
-            <!-- Kontrol Utama -->
-            <div class="w-full bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex flex-col gap-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] text-slate-500 font-bold uppercase">Efek Filter</label>
-                        <select id="filterSelect" class="bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 focus:outline-none">
-                            <option value="filter-none">Normal</option>
-                            <option value="filter-grayscale">B&W</option>
-                            <option value="filter-sepia">Sepia</option>
-                            <option value="filter-vintage">Vintage</option>
-                            <option value="filter-warm">Warm</option>
-                            <option value="filter-cool">Cool</option>
-                        </select>
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] text-slate-500 font-bold uppercase">Durasi Sesi</label>
-                        <select id="sessionDurationSelect" class="bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-2 focus:outline-none">
-                            <option value="60">1 Menit</option>
-                            <option value="180" selected>3 Menit</option>
-                            <option value="300">5 Menit</option>
-                        </select>
-                    </div>
-
-                    <div class="text-right">
-                        <span id="activeNameDisplay" class="text-blue-400 font-bold block truncate">Pilih Sesi</span>
-                        <span class="text-[10px] text-slate-500">TARGET ALBUM</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <button id="manualSnapBtn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50">
-                        <i class="fas fa-camera"></i> JEPRET MANUAL
-                    </button>
-                    <button id="startAutoBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-500/20">
-                        <i class="fas fa-play"></i> START AUTO SESSION
-                    </button>
-                </div>
-                <p class="text-[10px] text-center text-slate-500 italic">Sesi otomatis akan mengambil foto setiap 10 detik dengan hitung mundur.</p>
-            </div>
-        </div>
-
-        <!-- Kolom Kanan: Galeri -->
-        <div class="lg:col-span-3">
-            <div class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800 flex flex-col h-[680px]">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold flex items-center gap-2">
-                        <i class="fas fa-images text-purple-400"></i> Isi Album
-                    </h2>
-                    <span id="photoCount" class="bg-purple-500/20 text-purple-400 text-[10px] px-2 py-1 rounded-full font-bold">0</span>
-                </div>
-                
-                <div id="gallery" class="grid grid-cols-2 gap-2 overflow-y-auto custom-scrollbar pr-1">
-                    <div class="col-span-2 text-center text-slate-600 italic text-xs py-20">Pilih album untuk melihat foto</div>
-                </div>
-
-                <div class="mt-auto pt-4 flex flex-col gap-2">
-                   <button id="downloadAlbumBtn" onclick="downloadAlbum()" disabled class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg transition border border-slate-700 disabled:opacity-30">
-                       <i class="fas fa-download mr-1"></i> Unduh Satu Album
-                   </button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Notifikasi -->
-    <div id="msgBox" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl border border-slate-700 transform translate-y-24 transition-transform duration-300 z-[100] flex items-center gap-3">
-        <i class="fas fa-info-circle"></i>
-        <span id="msgContent">Pesan</span>
+    <div class="flex items-center gap-3 mb-6">
+        <i data-lucide="camera" class="w-8 h-8 text-pink-500"></i>
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+            SanPhotobooth
+        </h1>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, where, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <div class="w-full max-w-4xl grid md:grid-cols-3 gap-6">
+        <!-- Main Camera Area -->
+        <div class="md:col-span-2 flex flex-col gap-4">
+            <div class="relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800 aspect-[4/3] flex items-center justify-center">
+                
+                <!-- Error Message -->
+                <div id="error-container" class="text-red-400 p-6 text-center hide z-30 relative">
+                    <i data-lucide="video" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                    <p id="error-text">Terjadi kesalahan.</p>
+                </div>
 
-        // Global Config
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'san-photobooth-v1';
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+                <!-- Video Element -->
+                <video id="camera-video" autoplay playsinline muted class="w-full h-full object-cover hide"></video>
+                
+                <!-- Flash Effect -->
+                <div id="flash-overlay" class="absolute inset-0 bg-white opacity-80 z-20 hide transition-opacity"></div>
 
-        // State Global
-        let currentUser = null;
-        let activeSessionId = null;
-        let isSessionRunning = false;
-        let isCameraActive = false;
-        
-        let mainTimerInterval = null;
-        let photoCycleInterval = null;
-        
-        let sessions = [];
+                <!-- Countdown Overlay -->
+                <div id="countdown-overlay" class="absolute inset-0 flex items-center justify-center bg-black/40 z-10 backdrop-blur-sm hide">
+                    <span id="countdown-text" class="text-9xl font-bold text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-pulse">
+                        3
+                    </span>
+                </div>
+                
+                <!-- Hidden Canvas -->
+                <canvas id="capture-canvas" class="hidden"></canvas>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center justify-between bg-gray-900 p-4 rounded-2xl border border-gray-800 shadow-lg">
+                <div class="w-1/3 flex justify-start">
+                    <button id="switch-btn" class="p-3 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors hide" title="Ganti Kamera">
+                        <i data-lucide="refresh-ccw" class="w-6 h-6 text-gray-300"></i>
+                    </button>
+                </div>
+
+                <div class="w-1/3 flex justify-center">
+                    <button id="capture-btn" class="relative w-20 h-20 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center group hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+                        <div class="w-16 h-16 rounded-full bg-transparent border-2 border-gray-900 group-hover:bg-pink-500/10 transition-colors"></div>
+                    </button>
+                </div>
+
+                <div class="w-1/3 flex justify-end">
+                    <select id="device-select" class="bg-gray-800 text-sm text-gray-300 border border-gray-700 rounded-lg p-2 max-w-[120px] truncate focus:outline-none focus:border-pink-500">
+                        <option value="">Memuat...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery / Strip Area -->
+        <div class="md:col-span-1 bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col h-[500px] md:h-auto shadow-lg">
+            <div class="flex items-center gap-2 mb-4 pb-4 border-b border-gray-800">
+                <i data-lucide="image" class="w-5 h-5 text-gray-400"></i>
+                <h2 class="font-semibold text-lg">Hasil Foto (<span id="gallery-count">0</span>)</h2>
+            </div>
+            
+            <div id="gallery-container" class="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                <!-- Foto akan dirender di sini melalui JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Konfigurasi IndexedDB ---
+        const DB_NAME = 'SanPhotoboothDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'photos';
+
+        const initDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        };
+
+        const savePhotoToDB = async (photo) => {
+            const db = await initDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                store.add(photo).onsuccess = () => resolve(photo);
+            });
+        };
+
+        const loadPhotosFromDB = async () => {
+            const db = await initDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+            });
+        };
+
+        const deletePhotoFromDB = async (id) => {
+            const db = await initDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                store.delete(id).onsuccess = () => resolve();
+            });
+        };
+
+        // --- State dan Element DOM ---
+        let currentStream = null;
+        let devicesList = [];
         let photos = [];
+        let isCountingDown = false;
 
-        // UI References
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('canvas');
-        const gallery = document.getElementById('gallery');
-        const sessionList = document.getElementById('sessionList');
-        const nameInput = document.getElementById('nameInput');
-        const timerDisplay = document.getElementById('sessionTimerDisplay');
-        const timerClock = document.getElementById('timerClock');
-        const timerProgress = document.getElementById('timerProgress');
-        const autoStatus = document.getElementById('autoStatus');
-        const activeNameDisplay = document.getElementById('activeNameDisplay');
-        const authIndicator = document.getElementById('authIndicator');
-        const authText = document.getElementById('authText');
-        const countdownOverlay = document.getElementById('countdown');
-        const nextPhotoOverlay = document.getElementById('nextPhotoOverlay');
-        const nextPhotoTimer = document.getElementById('nextPhotoTimer');
-        const durationSelect = document.getElementById('sessionDurationSelect');
+        const videoEl = document.getElementById('camera-video');
+        const canvasEl = document.getElementById('capture-canvas');
+        const deviceSelect = document.getElementById('device-select');
+        const switchBtn = document.getElementById('switch-btn');
+        const captureBtn = document.getElementById('capture-btn');
+        const errorContainer = document.getElementById('error-container');
+        const errorText = document.getElementById('error-text');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const countdownOverlay = document.getElementById('countdown-overlay');
+        const countdownText = document.getElementById('countdown-text');
+        const galleryContainer = document.getElementById('gallery-container');
+        const galleryCount = document.getElementById('gallery-count');
 
-        // Init Auth
-        async function init() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Auth error:", error);
-                showMsg("Gagal terhubung ke Cloud!", "fa-times", "text-red-500");
+        // --- Inisialisasi Ikon Lucide ---
+        lucide.createIcons();
+
+        // --- Fungsi UI ---
+        const showError = (msg) => {
+            errorText.textContent = msg;
+            errorContainer.classList.remove('hide');
+            videoEl.classList.add('hide');
+            captureBtn.disabled = true;
+        };
+
+        const hideError = () => {
+            errorContainer.classList.add('hide');
+            videoEl.classList.remove('hide');
+            captureBtn.disabled = false;
+        };
+
+        const renderGallery = () => {
+            galleryCount.textContent = photos.length;
+            
+            if (photos.length === 0) {
+                galleryContainer.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-gray-500 py-10">
+                        <i data-lucide="image" class="w-12 h-12 mb-2 opacity-20"></i>
+                        <p class="text-sm">Belum ada foto.</p>
+                        <p class="text-xs">Mulai berpose!</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
             }
-        }
 
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) {
-                authIndicator.classList.replace('bg-yellow-500', 'bg-green-500');
-                authText.innerText = "CLOUD AKTIF";
-                startCamera();
-                listenToSessions();
+            galleryContainer.innerHTML = photos.map(photo => {
+                const timeString = new Date(photo.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                return `
+                    <div class="group relative bg-gray-800 p-2 rounded-xl border border-gray-700 shadow-md">
+                        <img src="${photo.dataUrl}" class="w-full h-auto rounded-lg object-cover bg-black" alt="Captured" />
+                        <div class="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button onclick="downloadPhoto('${photo.id}')" class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-transform hover:scale-110" title="Unduh">
+                                <i data-lucide="download" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="deletePhoto('${photo.id}')" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-transform hover:scale-110" title="Hapus">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <div class="text-center mt-2 text-xs text-gray-400 font-mono">${timeString}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        };
+
+        // --- Aksi Galeri ---
+        window.downloadPhoto = (id) => {
+            const photo = photos.find(p => p.id === id);
+            if (!photo) return;
+            const a = document.createElement('a');
+            a.href = photo.dataUrl;
+            a.download = `SanPhotobooth_${new Date(photo.timestamp).getTime()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        window.deletePhoto = async (id) => {
+            try {
+                await deletePhotoFromDB(id);
+                photos = photos.filter(p => p.id !== id);
+                renderGallery();
+            } catch (err) {
+                console.error("Gagal menghapus foto:", err);
+            }
+        };
+
+        // --- Logika Kamera ---
+        const stopStream = () => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+        };
+
+        const startCamera = async (deviceId = null) => {
+            try {
+                // Hentikan stream lama
+                stopStream();
+                await new Promise(res => setTimeout(res, 200)); // Jeda mencegah NotReadableError
+
+                const constraints = {
+                    video: deviceId ? { deviceId: { ideal: deviceId } } : true
+                };
+
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoEl.srcObject = currentStream;
+                hideError();
+
+                // Deteksi jika kamera depan untuk mirror effect
+                const currentTrack = currentStream.getVideoTracks()[0];
+                const label = currentTrack.label.toLowerCase();
+                if (label.includes('front') || label.includes('depan')) {
+                    videoEl.classList.add('scale-x-[-1]');
+                } else {
+                    videoEl.classList.remove('scale-x-[-1]');
+                }
+
+                return currentTrack.getSettings().deviceId;
+
+            } catch (err) {
+                showError('Gagal menyalakan kamera. Pastikan izin diberikan dan tidak dipakai aplikasi lain.');
+                console.error(err);
+                return null;
+            }
+        };
+
+        const initApp = async () => {
+            // 1. Load Data
+            try {
+                const saved = await loadPhotosFromDB();
+                photos = saved.sort((a, b) => b.timestamp - a.timestamp);
+                renderGallery();
+            } catch (err) { console.error("Gagal load DB:", err); }
+
+            // 2. Init Camera & Devices
+            try {
+                // Panggil kamera pertama kali untuk dapat izin
+                const activeDeviceId = await startCamera();
+                
+                // Ambil daftar perangkat
+                const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+                devicesList = mediaDevices.filter(device => device.kind === 'videoinput');
+                
+                // Update dropdown UI
+                deviceSelect.innerHTML = '';
+                devicesList.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Kamera ${index + 1}`;
+                    deviceSelect.appendChild(option);
+                });
+
+                if (activeDeviceId) {
+                    deviceSelect.value = activeDeviceId;
+                } else if (devicesList.length > 0) {
+                    deviceSelect.value = devicesList[0].deviceId;
+                }
+
+                // Tampilkan tombol ganti kamera jika lebih dari 1
+                if (devicesList.length > 1) {
+                    switchBtn.classList.remove('hide');
+                }
+
+            } catch (err) {
+                showError('Kamera tidak terdeteksi.');
+            }
+        };
+
+        // --- Event Listeners Kamera ---
+        deviceSelect.addEventListener('change', (e) => {
+            if (e.target.value) {
+                startCamera(e.target.value);
             }
         });
 
-        // Kamera
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
-                    audio: false 
-                });
-                video.srcObject = stream;
-                isCameraActive = true;
-            } catch (err) {
-                showMsg("Kamera tidak ditemukan!", "fa-times-circle", "text-red-500");
+        switchBtn.addEventListener('click', () => {
+            if (devicesList.length > 1) {
+                const currentIndex = devicesList.findIndex(d => d.deviceId === deviceSelect.value);
+                const nextIndex = (currentIndex + 1) % devicesList.length;
+                deviceSelect.value = devicesList[nextIndex].deviceId;
+                startCamera(deviceSelect.value);
             }
-        }
+        });
 
-        // Firebase Sync
-        function listenToSessions() {
-            const sessionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'sessions');
-            onSnapshot(sessionsRef, (snapshot) => {
-                sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                sessions.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                renderSessionsUI();
-            });
-        }
-
-        function listenToPhotos(sessionId) {
-            const photosRef = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
-            onSnapshot(photosRef, (snapshot) => {
-                photos = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(p => p.sessionId === sessionId);
-                photos.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                renderGalleryUI();
-            });
-        }
-
-        // UI Render
-        function renderSessionsUI() {
-            sessionList.innerHTML = '';
-            if (sessions.length === 0) {
-                sessionList.innerHTML = '<div class="text-slate-600 text-xs italic text-center py-10">Daftar kosong</div>';
-                return;
-            }
-            sessions.forEach(session => {
-                const div = document.createElement('div');
-                div.className = `p-3 rounded-xl border border-slate-800 bg-slate-800/20 cursor-pointer transition flex items-center justify-between hover:bg-slate-800/40 ${activeSessionId === session.id ? 'active-session-ring' : ''}`;
-                div.onclick = () => selectSession(session.id, session.name);
-                div.innerHTML = `
-                    <div class="flex flex-col overflow-hidden">
-                        <span class="text-sm font-bold truncate">${session.name}</span>
-                        <span class="text-[10px] text-slate-500">Cloud Album</span>
-                    </div>
-                    <button class="delete-btn text-slate-600 hover:text-red-400 p-2" data-id="${session.id}">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                `;
-                div.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteSession(session.id); };
-                sessionList.appendChild(div);
-            });
-        }
-
-        function renderGalleryUI() {
-            gallery.innerHTML = '';
-            document.getElementById('photoCount').innerText = photos.length;
-            if (photos.length === 0) {
-                gallery.innerHTML = '<div class="col-span-2 text-center text-slate-600 italic text-xs py-20">Album Kosong</div>';
-                return;
-            }
-            photos.forEach(photo => {
-                const div = document.createElement('div');
-                div.className = "relative group cursor-pointer animate-in fade-in duration-500";
-                div.innerHTML = `<img src="${photo.url}" class="w-full aspect-square object-cover rounded-lg border border-slate-700 shadow-lg">`;
-                div.onclick = () => window.open(photo.url);
-                gallery.appendChild(div);
-            });
-        }
-
-        // Logika Organiser: Sesi & Hitung Mundur
-        window.startAutoSession = () => {
-            if (!activeSessionId) return showMsg("Pilih album dulu!", "fa-user-plus", "text-yellow-500");
-            if (isSessionRunning) return;
-
-            const totalDuration = parseInt(durationSelect.value);
-            isSessionRunning = true;
-            toggleControls(true);
+        captureBtn.addEventListener('click', () => {
+            if (isCountingDown) return;
             
-            let timeLeft = totalDuration;
-            timerDisplay.classList.remove('hidden');
-            autoStatus.classList.remove('hidden');
-            nextPhotoOverlay.classList.remove('hidden');
-
-            // Timer Utama Sesi
-            mainTimerInterval = setInterval(() => {
-                timeLeft--;
-                const mins = Math.floor(timeLeft / 60);
-                const secs = timeLeft % 60;
-                timerClock.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-                timerProgress.style.width = `${(timeLeft / totalDuration) * 100}%`;
-
-                if (timeLeft <= 0) stopSession();
-            }, 1000);
-
-            // Loop Jepret Otomatis Setiap 10 Detik
-            startNewCaptureCycle();
-            showMsg(`Sesi ${totalDuration/60} menit dimulai!`, "fa-play");
-        };
-
-        function startNewCaptureCycle() {
-            if (!isSessionRunning) return;
-
-            let countdown = 10;
-            nextPhotoTimer.innerText = countdown;
-
-            photoCycleInterval = setInterval(() => {
-                countdown--;
-                nextPhotoTimer.innerText = countdown;
-
-                // Tampilkan hitung mundur besar saat sisa 3 detik
-                if (countdown <= 3 && countdown > 0) {
-                    countdownOverlay.innerText = countdown;
-                    countdownOverlay.classList.remove('hidden');
+            isCountingDown = true;
+            captureBtn.disabled = true;
+            captureBtn.classList.add('opacity-50');
+            countdownOverlay.classList.remove('hide');
+            
+            let counter = 3;
+            countdownText.textContent = counter;
+            
+            const timer = setInterval(() => {
+                counter -= 1;
+                
+                if (counter === 0) {
+                    clearInterval(timer);
+                    captureImage();
+                    setTimeout(() => {
+                        countdownOverlay.classList.add('hide');
+                        isCountingDown = false;
+                        captureBtn.disabled = false;
+                        captureBtn.classList.remove('opacity-50');
+                    }, 500);
                 } else {
-                    countdownOverlay.classList.add('hidden');
-                }
-
-                if (countdown <= 0) {
-                    clearInterval(photoCycleInterval);
-                    takeSnapshot(); // Jepret!
-                    
-                    // Ulangi siklus jika sesi masih berjalan
-                    if (isSessionRunning) {
-                        setTimeout(startNewCaptureCycle, 500); 
-                    }
+                    countdownText.textContent = counter;
                 }
             }, 1000);
-        }
+        });
 
-        function stopSession() {
-            clearInterval(mainTimerInterval);
-            clearInterval(photoCycleInterval);
-            isSessionRunning = false;
-            toggleControls(false);
-            timerDisplay.classList.add('hidden');
-            autoStatus.classList.add('hidden');
-            nextPhotoOverlay.classList.add('hidden');
-            countdownOverlay.classList.add('hidden');
-            showMsg("Sesi Berakhir!", "fa-flag-checkered");
-        }
+        const captureImage = async () => {
+            // Flash Effect
+            flashOverlay.classList.remove('hide');
+            setTimeout(() => flashOverlay.classList.add('hide'), 150);
 
-        // Actions
-        window.addToQueue = async () => {
-            const name = nameInput.value.trim();
-            if (!name) return;
-            const sessionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'sessions');
-            await addDoc(sessionsRef, { name: name, createdAt: Timestamp.now() });
-            nameInput.value = '';
-            showMsg("Album Baru Cloud Dibuat");
-        };
+            // Draw to Canvas
+            canvasEl.width = videoEl.videoWidth;
+            canvasEl.height = videoEl.videoHeight;
+            const ctx = canvasEl.getContext('2d');
 
-        window.takeSnapshot = async () => {
-            if (!isCameraActive || !activeSessionId) return;
-
-            // Flash visual
-            const flash = document.getElementById('flash');
-            flash.classList.add('animate-flash');
-            setTimeout(() => flash.classList.remove('animate-flash'), 300);
-
-            const ctx = canvas.getContext('2d');
-            canvas.width = 1024;
-            canvas.height = 768;
-            ctx.filter = getComputedStyle(video).filter;
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const url = canvas.toDataURL('image/jpeg', 0.7);
+            // Cek apakah video di-mirror (kamera depan)
+            if (videoEl.classList.contains('scale-x-[-1]')) {
+                ctx.translate(canvasEl.width, 0);
+                ctx.scale(-1, 1);
+            }
+            ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
             
-            const photosRef = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
-            await addDoc(photosRef, {
-                sessionId: activeSessionId,
-                url: url,
-                createdAt: Timestamp.now()
-            });
+            const dataUrl = canvasEl.toDataURL('image/png');
+            
+            const newPhoto = {
+                id: `photo_${Date.now()}`,
+                dataUrl,
+                timestamp: Date.now()
+            };
+
+            try {
+                await savePhotoToDB(newPhoto);
+                photos.unshift(newPhoto); // Tambah di awal array
+                renderGallery();
+            } catch (err) {
+                console.error("Gagal simpan:", err);
+            }
         };
 
-        function selectSession(id, name) {
-            if (isSessionRunning) return showMsg("Sesi Sedang Berjalan!");
-            activeSessionId = id;
-            activeNameDisplay.innerText = name;
-            document.getElementById('downloadAlbumBtn').disabled = false;
-            listenToPhotos(id);
-            renderSessionsUI();
-        }
+        // Jalankan saat halaman siap
+        window.addEventListener('DOMContentLoaded', initApp);
 
-        async function deleteSession(id) {
-            if (!confirm("Hapus album ini secara permanen?")) return;
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sessions', id));
-        }
+        // Cleanup saat tab ditutup
+        window.addEventListener('beforeunload', stopStream);
 
-        window.downloadAlbum = () => {
-            showMsg("Menyiapkan unduhan...");
-            photos.forEach((photo, i) => {
-                setTimeout(() => {
-                    const a = document.createElement('a');
-                    a.href = photo.url;
-                    a.download = `${activeNameDisplay.innerText}_${i+1}.jpg`;
-                    a.click();
-                }, i * 400);
-            });
-        };
-
-        function toggleControls(disabled) {
-            document.getElementById('startAutoBtn').disabled = disabled;
-            document.getElementById('manualSnapBtn').disabled = disabled;
-            document.getElementById('filterSelect').disabled = disabled;
-            durationSelect.disabled = disabled;
-            nameInput.disabled = disabled;
-        }
-
-        function showMsg(text, icon="fa-info-circle", color="text-blue-400") {
-            const msgBox = document.getElementById('msgBox');
-            document.getElementById('msgContent').innerText = text;
-            msgBox.querySelector('i').className = `fas ${icon} ${color}`;
-            msgBox.classList.remove('translate-y-24');
-            msgBox.classList.add('translate-y-0');
-            setTimeout(() => { msgBox.classList.remove('translate-y-0'); msgBox.classList.add('translate-y-24'); }, 3000);
-        }
-
-        document.getElementById('filterSelect').onchange = (e) => video.className = e.target.value;
-        document.getElementById('manualSnapBtn').onclick = window.takeSnapshot;
-        document.getElementById('startAutoBtn').onclick = window.startAutoSession;
-
-        init();
     </script>
 </body>
 </html>
