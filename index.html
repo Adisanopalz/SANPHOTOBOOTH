@@ -3,498 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SANPHOTOBOOTH PRO</title>
-    <!-- Tailwind CSS -->
+    <title>AI Realtime Camera Transform</title>
+    <!-- Tailwind CSS untuk Styling UI -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome untuk Icon -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google MediaPipe untuk AI Body Segmentation -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
-        
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #0f172a, #312e81, #4c1d95);
-            background-attachment: fixed;
-        }
-
-        .mirrored {
-            transform: scaleX(-1);
-        }
-
-        .flash-active {
-            animation: flashAnim 0.5s ease-out forwards;
-        }
-
-        @keyframes flashAnim {
-            0% { background-color: rgba(255, 255, 255, 1); opacity: 1; }
-            100% { background-color: rgba(255, 255, 255, 0); opacity: 0; display: none; }
-        }
-
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .glass-panel {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(31, 41, 55, 0.7);
             backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        @keyframes pop {
-            0% { transform: scale(0.5); opacity: 0; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(1); opacity: 0; }
-        }
-        .countdown-text {
-            animation: pop 1s ease-in-out;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            height: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 4px;
+        canvas {
+            transform: scaleX(-1); /* Efek Cermin (Mirror) */
         }
     </style>
 </head>
-<body class="text-white min-h-screen flex flex-col items-center p-4 sm:p-8">
+<body class="bg-gray-900 text-white min-h-screen flex flex-col md:flex-row overflow-hidden">
 
-    <!-- Header -->
-    <header class="text-center mb-6">
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 tracking-wider">
-            SANPHOTOBOOTH <i class="fa-solid fa-camera-retro text-pink-400"></i>
+    <!-- Sidebar / Kontrol -->
+    <aside class="glass-panel w-full md:w-80 h-auto md:h-screen p-6 flex flex-col shadow-2xl z-10 flex-shrink-0 overflow-y-auto">
+        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-2">
+            AI VisionCam
         </h1>
-        <p class="text-gray-300 mt-2 text-sm sm:text-base">Tangkap momen dengan AI Hand Tracking ✌️</p>
-    </header>
+        <p class="text-gray-400 text-sm mb-6">Transformasi kamera realtime dengan filter canvas & AI MediaPipe.</p>
 
-    <!-- Main App Container -->
-    <div class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Status & Tombol Kamera -->
+        <div class="mb-8">
+            <button id="startBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                Mulai Kamera
+            </button>
+            <div id="status" class="mt-3 text-xs text-center text-yellow-400 hidden">Meminta akses kamera...</div>
+        </div>
+
+        <!-- Opsi Transformasi -->
+        <div id="controls" class="opacity-50 pointer-events-none transition duration-300">
+            <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Tahap 1: Dasar</h2>
+            <div class="grid grid-cols-2 gap-2 mb-6">
+                <button class="filter-btn active bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm transition" data-mode="normal">Normal</button>
+            </div>
+
+            <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Tahap 2: Filter Piksel</h2>
+            <div class="grid grid-cols-2 gap-2 mb-6">
+                <button class="filter-btn bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm transition" data-mode="grayscale">Grayscale</button>
+                <button class="filter-btn bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm transition" data-mode="sepia">Sepia</button>
+                <button class="filter-btn bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm transition" data-mode="invert">Invert</button>
+                <button class="filter-btn bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm transition" data-mode="pixelate">Pixelate</button>
+            </div>
+
+            <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Tahap 3: Kekuatan AI <span class="text-xs text-purple-400">(Segmentasi)</span></h2>
+            <div class="flex flex-col gap-2 mb-6">
+                <button class="filter-btn bg-purple-900/50 hover:bg-purple-800 border border-purple-500/30 px-3 py-3 rounded text-sm transition text-left flex items-center justify-between" data-mode="ai_blur">
+                    <span>AI Background Blur</span>
+                    <span class="ai-status text-xs text-gray-400"></span>
+                </button>
+                <button class="filter-btn bg-green-900/50 hover:bg-green-800 border border-green-500/30 px-3 py-3 rounded text-sm transition text-left flex items-center justify-between" data-mode="ai_matrix">
+                    <span>Matrix Background (AI)</span>
+                    <span class="ai-status text-xs text-gray-400"></span>
+                </button>
+            </div>
+        </div>
         
-        <!-- Kolom Kiri: Kamera & Kontrol Utama -->
-        <div class="lg:col-span-2 flex flex-col gap-4">
-            
-            <!-- Video Container -->
-            <div class="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 group">
-                <!-- Indikator Hand Tracking Aktif -->
-                <div id="handIndicator" class="absolute top-4 left-4 bg-black/50 backdrop-blur px-3 py-1.5 rounded-full border border-white/20 z-20 hidden items-center gap-2">
-                    <i class="fa-solid fa-hand-sparkles text-pink-400 animate-pulse"></i>
-                    <span class="text-xs font-semibold text-white">Sensor Tangan: Aktif</span>
-                    <span class="text-[10px] text-gray-300 ml-1">(Pose ✌️ atau ✋)</span>
-                </div>
-
-                <!-- Indikator Loading AI -->
-                <div id="aiLoadingIndicator" class="absolute top-4 right-4 bg-black/50 backdrop-blur px-3 py-1.5 rounded-full border border-white/20 z-20 flex items-center gap-2">
-                    <i class="fa-solid fa-circle-notch fa-spin text-indigo-400"></i>
-                    <span class="text-xs font-semibold text-white">Memuat AI...</span>
-                </div>
-
-                <!-- Video Stream -->
-                <video id="video" class="w-full h-full object-cover mirrored" autoplay playsinline></video>
-                
-                <!-- Overlay Flash -->
-                <div id="flashOverlay" class="absolute inset-0 bg-white opacity-0 pointer-events-none z-20"></div>
-                
-                <!-- Overlay Hitung Mundur -->
-                <div id="countdownOverlay" class="absolute inset-0 flex items-center justify-center z-10 hidden">
-                    <span id="countdownText" class="text-8xl font-bold text-white drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]">3</span>
-                </div>
-
-                <!-- Error Message Box -->
-                <div id="errorBox" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-30 hidden p-6 text-center">
-                    <i class="fa-solid fa-video-slash text-4xl text-red-500 mb-3"></i>
-                    <h3 class="font-bold text-xl mb-2">Akses Kamera Ditolak</h3>
-                    <p class="text-sm text-gray-400">Harap izinkan akses kamera di browser Anda untuk menggunakan photobooth ini.</p>
-                    <button id="retryBtn" class="mt-4 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-semibold transition">Coba Lagi</button>
-                </div>
-            </div>
-
-            <!-- Kontrol Utama -->
-            <div class="glass-panel rounded-2xl p-4 flex justify-center items-center shadow-lg gap-3 sm:gap-6 flex-wrap relative">
-                <button id="switchCamBtn" class="p-3 bg-white/10 hover:bg-white/20 rounded-full transition absolute left-4" title="Ganti Kamera">
-                    <i class="fa-solid fa-rotate text-xl"></i>
-                </button>
-                
-                <!-- Tombol Hand Tracking -->
-                <button id="handTrackingBtn" class="p-3 bg-white/10 hover:bg-white/20 rounded-full transition flex items-center gap-2 opacity-50 cursor-not-allowed" title="Auto Jepret via Gestur Jari" disabled>
-                    <i class="fa-solid fa-hand-sparkles text-xl"></i>
-                    <span id="handStatus" class="font-bold text-sm hidden sm:inline">AI Off</span>
-                </button>
-
-                <!-- Tombol Capture -->
-                <button id="captureBtn" class="group relative w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:scale-105 transition transform z-10">
-                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-tr from-pink-500 to-indigo-500 rounded-full border-2 border-white group-active:scale-95 transition"></div>
-                </button>
-
-                <!-- Timer Toggle -->
-                <button id="timerBtn" class="p-3 bg-indigo-500/80 hover:bg-indigo-500 rounded-full transition flex items-center gap-2" title="Gunakan Timer 3 Detik">
-                    <i class="fa-solid fa-stopwatch text-xl"></i>
-                    <span id="timerStatus" class="font-bold text-sm hidden sm:inline">On</span>
-                </button>
-            </div>
+        <div class="mt-auto pt-6 text-xs text-gray-500 text-center">
+            Semua pemrosesan AI dilakukan secara lokal di browser Anda.
         </div>
+    </aside>
 
-        <!-- Kolom Kanan: Pengaturan Filter & Frame -->
-        <div class="glass-panel rounded-2xl p-6 flex flex-col gap-6 shadow-lg h-fit">
-            
-            <!-- Filters -->
-            <div>
-                <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-pink-400"></i> Filter Warna</h3>
-                <div class="grid grid-cols-2 gap-2">
-                    <button class="filter-btn active bg-indigo-600 hover:bg-indigo-500 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="none">Normal</button>
-                    <button class="filter-btn bg-white/10 hover:bg-white/20 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="grayscale(100%)">B/W</button>
-                    <button class="filter-btn bg-white/10 hover:bg-white/20 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="sepia(100%)">Sepia</button>
-                    <button class="filter-btn bg-white/10 hover:bg-white/20 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="invert(100%)">Invert</button>
-                </div>
-            </div>
-
-            <hr class="border-white/10">
-
-            <!-- Frames -->
-            <div>
-                <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fa-solid fa-border-all text-indigo-400"></i> Bingkai (Frame)</h3>
-                <div class="flex flex-col gap-2">
-                    <button class="frame-btn active bg-indigo-600 hover:bg-indigo-500 py-2 px-4 rounded-lg text-sm font-medium transition text-left" data-frame="none">Tanpa Bingkai</button>
-                    <button class="frame-btn bg-white/10 hover:bg-white/20 py-2 px-4 rounded-lg text-sm font-medium transition text-left flex justify-between" data-frame="polaroid">Polaroid <i class="fa-solid fa-image"></i></button>
-                    <button class="frame-btn bg-white/10 hover:bg-white/20 py-2 px-4 rounded-lg text-sm font-medium transition text-left flex justify-between" data-frame="cinematic">Sinematik <i class="fa-solid fa-film"></i></button>
-                </div>
-            </div>
+    <!-- Area Penampil Utama -->
+    <main class="flex-1 relative flex items-center justify-center p-4 bg-black/90">
+        <!-- Video element tersembunyi untuk menangkap stream -->
+        <video id="input_video" class="hidden" autoplay playsinline></video>
+        
+        <!-- Canvas untuk menampilkan hasil akhir -->
+        <div class="relative w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50 aspect-video flex items-center justify-center bg-gray-900">
+            <span id="placeholderText" class="text-gray-500 absolute z-0 flex flex-col items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+                Kamera Belum Aktif
+            </span>
+            <canvas id="output_canvas" class="w-full h-full object-contain relative z-10 hidden"></canvas>
         </div>
-    </div>
+    </main>
 
-    <!-- Galeri Hasil Jepretan -->
-    <div class="w-full max-w-4xl mt-8">
-        <h3 class="font-bold text-xl mb-4 flex items-center gap-2"><i class="fa-solid fa-images"></i> Galeri Photobooth</h3>
-        <div id="gallery" class="flex gap-4 overflow-x-auto custom-scrollbar pb-4 min-h-[150px] items-center">
-            <p id="emptyGalleryMsg" class="text-gray-400 text-sm italic w-full text-center">Belum ada foto. Ayo mulai memotret!</p>
-            <!-- Foto akan muncul di sini -->
-        </div>
-    </div>
+    <!-- Canvas tersembunyi untuk animasi efek Matrix -->
+    <canvas id="matrix_canvas" class="hidden"></canvas>
 
-    <!-- Canvas Tersembunyi untuk Pemrosesan -->
-    <canvas id="canvas" class="hidden"></canvas>
-
-    <!-- Script Utama (Bertipe Module agar bisa import MediaPipe) -->
-    <script type="module">
-        import {
-            GestureRecognizer,
-            FilesetResolver
-        } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
-
+    <script>
         // DOM Elements
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const captureBtn = document.getElementById('captureBtn');
-        const switchCamBtn = document.getElementById('switchCamBtn');
-        const timerBtn = document.getElementById('timerBtn');
-        const timerStatus = document.getElementById('timerStatus');
-        const handTrackingBtn = document.getElementById('handTrackingBtn');
-        const handStatus = document.getElementById('handStatus');
-        const handIndicator = document.getElementById('handIndicator');
-        const aiLoadingIndicator = document.getElementById('aiLoadingIndicator');
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const matrixCanvas = document.getElementById('matrix_canvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
         
-        const flashOverlay = document.getElementById('flashOverlay');
-        const countdownOverlay = document.getElementById('countdownOverlay');
-        const countdownText = document.getElementById('countdownText');
-        const errorBox = document.getElementById('errorBox');
-        const retryBtn = document.getElementById('retryBtn');
-        const gallery = document.getElementById('gallery');
-        const emptyGalleryMsg = document.getElementById('emptyGalleryMsg');
-        
+        const startBtn = document.getElementById('startBtn');
+        const statusEl = document.getElementById('status');
+        const controlsEl = document.getElementById('controls');
+        const placeholderText = document.getElementById('placeholderText');
         const filterBtns = document.querySelectorAll('.filter-btn');
-        const frameBtns = document.querySelectorAll('.frame-btn');
 
-        // State variables
-        let currentStream = null;
-        let facingMode = 'user';
-        let useTimer = true;
-        let activeFilter = 'none';
-        let activeFrame = 'none';
-        let isCapturing = false;
-        let captureCooldown = false; // Mencegah spam foto beruntun dari AI
+        // State Aplikasi
+        let isCameraRunning = false;
+        let currentMode = 'normal';
+        let cameraUtils = null;
+        let aiModel = null;
+        let isAILoaded = false;
 
-        // AI Hand Tracking Variables
-        let gestureRecognizer = null;
-        let handDetectionEnabled = false;
-        let lastVideoTime = -1;
-
-        // Inisialisasi Model AI MediaPipe
-        async function loadAI() {
-            try {
-                const vision = await FilesetResolver.forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-                );
-                gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
-                        delegate: "GPU"
-                    },
-                    runningMode: "VIDEO",
-                    numHands: 1
-                });
-                
-                // Aktifkan tombol saat model siap
-                aiLoadingIndicator.classList.add('hidden');
-                handTrackingBtn.disabled = false;
-                handTrackingBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                console.log("Model AI siap!");
-            } catch (err) {
-                console.error("Gagal memuat model AI:", err);
-                aiLoadingIndicator.innerHTML = `<span class="text-xs font-semibold text-red-400">Gagal memuat AI</span>`;
-            }
-        }
-        loadAI();
-
-        // Inisialisasi Kamera
-        async function initCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
-
-            try {
-                const constraints = {
-                    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-                    audio: false
-                };
-                
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                currentStream = stream;
-                video.srcObject = stream;
-                
-                if (facingMode === 'user') {
-                    video.classList.add('mirrored');
-                } else {
-                    video.classList.remove('mirrored');
-                }
-                
-                errorBox.classList.add('hidden');
-            } catch (err) {
-                console.error("Akses kamera gagal:", err);
-                errorBox.classList.remove('hidden');
-            }
-        }
-
-        // Loop Prediksi AI pada Kamera
-        function predictWebcam() {
-            // Berhenti jika fitur mati, AI belum siap, sedang memotret, atau sedang cooldown
-            if (!handDetectionEnabled || !gestureRecognizer) return;
-
-            if (!isCapturing && !captureCooldown && video.readyState >= 2) {
-                let nowInMs = Date.now();
-                if (video.currentTime !== lastVideoTime) {
-                    lastVideoTime = video.currentTime;
-                    const results = gestureRecognizer.recognizeForVideo(video, nowInMs);
-                    
-                    if (results.gestures.length > 0) {
-                        const gestureName = results.gestures[0][0].categoryName;
-                        const score = results.gestures[0][0].score;
-                        
-                        // Jika pose jari V (Peace) atau Telapak Terbuka, dan akurasi tinggi
-                        if ((gestureName === 'Victory' || gestureName === 'Open_Palm') && score > 0.60) {
-                            console.log("Gestur terdeteksi!", gestureName, score);
-                            takePhoto(); // Memicu jepretan otomatis
-                        }
-                    }
-                }
-            }
+        // Inisialisasi Model AI (MediaPipe Selfie Segmentation)
+        function initAIModel() {
+            if (aiModel) return;
             
-            // Lanjutkan looping jika fitur masih nyala
-            if (handDetectionEnabled) {
-                window.requestAnimationFrame(predictWebcam);
-            }
+            document.querySelectorAll('.ai-status').forEach(el => el.textContent = "(Memuat...)");
+            
+            aiModel = new SelfieSegmentation({locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+            }});
+
+            aiModel.setOptions({
+                modelSelection: 1, // 1 untuk landscape (lebih ringan & cepat)
+            });
+
+            aiModel.onResults(onAIResults);
+            
+            // Model diinisialisasi sepenuhnya saat pengiriman frame pertama berhasil,
+            // tetapi kita tandai flag awal.
+            isAILoaded = true; 
         }
 
-        // Event: Ganti Kamera
-        switchCamBtn.addEventListener('click', () => {
-            facingMode = facingMode === 'user' ? 'environment' : 'user';
-            initCamera();
-        });
-        retryBtn.addEventListener('click', initCamera);
-
-        // Event: Toggle Hand Tracking
-        handTrackingBtn.addEventListener('click', () => {
-            if (!gestureRecognizer) return;
-
-            handDetectionEnabled = !handDetectionEnabled;
-            if (handDetectionEnabled) {
-                handTrackingBtn.classList.replace('bg-white/10', 'bg-pink-500/80');
-                handTrackingBtn.classList.replace('hover:bg-white/20', 'hover:bg-pink-500');
-                handStatus.textContent = 'AI On';
-                handIndicator.classList.remove('hidden');
-                handIndicator.classList.add('flex');
-                
-                // Pastikan untuk selalu paksa Timer nyala (wajib untuk hand gesture)
-                if (!useTimer) timerBtn.click();
-                
-                predictWebcam(); // Mulai deteksi
-            } else {
-                handTrackingBtn.classList.replace('bg-pink-500/80', 'bg-white/10');
-                handTrackingBtn.classList.replace('hover:bg-pink-500', 'hover:bg-white/20');
-                handStatus.textContent = 'AI Off';
-                handIndicator.classList.remove('flex');
-                handIndicator.classList.add('hidden');
-            }
-        });
-
-        // Event: Toggle Timer
-        timerBtn.addEventListener('click', () => {
-            useTimer = !useTimer;
-            if (useTimer) {
-                timerBtn.classList.replace('bg-white/10', 'bg-indigo-500/80');
-                timerStatus.textContent = 'On';
-            } else {
-                timerBtn.classList.replace('bg-indigo-500/80', 'bg-white/10');
-                timerStatus.textContent = 'Off';
-                // Jika timer dimatikan, matikan juga Hand Tracking untuk mencegah spam
-                if(handDetectionEnabled) handTrackingBtn.click();
-            }
-        });
-
-        // Event: Pilih Filter
+        // Penanganan Tombol UI
         filterBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
+                // Hapus state aktif dari tombol lain
                 filterBtns.forEach(b => {
-                    b.classList.remove('bg-indigo-600', 'active');
-                    b.classList.add('bg-white/10');
+                    b.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-600');
+                    if(!b.classList.contains('bg-purple-900/50') && !b.classList.contains('bg-green-900/50')) {
+                        b.classList.add('bg-gray-700');
+                    }
                 });
-                e.target.classList.remove('bg-white/10');
-                e.target.classList.add('bg-indigo-600', 'active');
-                activeFilter = e.target.getAttribute('data-filter');
-                video.style.filter = activeFilter !== 'none' ? activeFilter : '';
-            });
-        });
-
-        // Event: Pilih Bingkai
-        frameBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                frameBtns.forEach(b => {
-                    b.classList.remove('bg-indigo-600', 'active');
-                    b.classList.add('bg-white/10');
-                });
-                e.target.classList.remove('bg-white/10');
-                e.target.classList.add('bg-indigo-600', 'active');
-                activeFrame = e.target.getAttribute('data-frame');
-            });
-        });
-
-        // Fungsi Ambil Foto Utama
-        async function takePhoto() {
-            if (isCapturing) return;
-            isCapturing = true; // Kunci status memotret agar AI / klik ganda tidak bertabrakan
-
-            if (useTimer) {
-                countdownOverlay.classList.remove('hidden');
-                for (let i = 3; i > 0; i--) {
-                    countdownText.textContent = i;
-                    countdownText.style.animation = 'none';
-                    countdownText.offsetHeight; /* trigger reflow */
-                    countdownText.style.animation = null; 
-                    countdownText.classList.add('countdown-text');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-                countdownOverlay.classList.add('hidden');
-            }
-
-            flashOverlay.classList.remove('hidden');
-            flashOverlay.classList.add('flash-active');
-            
-            setTimeout(() => {
-                flashOverlay.classList.remove('flash-active');
-                flashOverlay.classList.add('hidden');
-                processImage();
                 
-                // Jeda cooldown (2 detik) sebelum AI bisa membaca gestur lagi
-                isCapturing = false;
-                captureCooldown = true;
-                setTimeout(() => { captureCooldown = false; }, 2000); 
-            }, 100);
+                // Set tombol aktif
+                const target = e.currentTarget;
+                if(!target.classList.contains('bg-purple-900/50') && !target.classList.contains('bg-green-900/50')) {
+                     target.classList.remove('bg-gray-700');
+                }
+                target.classList.add('ring-2', 'ring-blue-500', 'bg-blue-600');
+
+                currentMode = target.getAttribute('data-mode');
+
+                // Jika memilih mode AI, pastikan model dimuat
+                if (currentMode.startsWith('ai_') && !isAILoaded) {
+                    initAIModel();
+                }
+            });
+        });
+
+        // Setup Animasi Matrix Hujan Kode
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%""\'#&_(),.;:?!\\|{}<>[]^~';
+        let drops = [];
+        const fontSize = 14;
+
+        function initMatrix(width, height) {
+            matrixCanvas.width = width;
+            matrixCanvas.height = height;
+            const columns = width / fontSize;
+            drops = [];
+            for(let x = 0; x < columns; x++) drops[x] = 1;
         }
 
-        // Fungsi Memproses Canvas (Filter + Bingkai)
-        function processImage() {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+        function drawMatrix() {
+            // Efek jejak transparan
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
             
-            ctx.save();
-            if (facingMode === 'user') {
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
+            matrixCtx.fillStyle = '#0F0';
+            matrixCtx.font = fontSize + 'px monospace';
+            
+            for(let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                matrixCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if(drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        // Loop Pemrosesan Frame
+        async function processFrame() {
+            if (!videoElement.videoWidth) return;
+
+            // Sesuaikan ukuran kanvas dengan feed video
+            if (canvasElement.width !== videoElement.videoWidth) {
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+                initMatrix(canvasElement.width, canvasElement.height);
             }
 
-            ctx.filter = activeFilter !== 'none' ? activeFilter : 'none';
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            ctx.restore();
+            // Jika mode AI (Tahap 3)
+            if (currentMode.startsWith('ai_') && isAILoaded && aiModel) {
+                // Kirim frame ke MediaPipe. Akan memanggil onAIResults secara asinkron.
+                await aiModel.send({image: videoElement});
+            } 
+            // Jika mode Filter Biasa (Tahap 1 & 2)
+            else {
+                drawStandardFilters();
+            }
+        }
 
-            if (activeFrame === 'polaroid') {
-                drawPolaroidFrame(canvas.width, canvas.height);
-            } else if (activeFrame === 'cinematic') {
-                drawCinematicFrame(canvas.width, canvas.height);
+        // Menggambar filter konvensional (Tanpa AI)
+        function drawStandardFilters() {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // Set Filter CSS pada Canvas API
+            if (currentMode === 'grayscale') canvasCtx.filter = 'grayscale(100%)';
+            else if (currentMode === 'sepia') canvasCtx.filter = 'sepia(100%)';
+            else if (currentMode === 'invert') canvasCtx.filter = 'invert(100%)';
+            else canvasCtx.filter = 'none';
+
+            // Efek Pikselisasi dikerjakan dengan mematikan smoothing
+            if (currentMode === 'pixelate') {
+                const pixelSize = 0.04; // 4% resolusi asli
+                const w = canvasElement.width * pixelSize;
+                const h = canvasElement.height * pixelSize;
+                
+                // Gambar kecil
+                canvasCtx.drawImage(videoElement, 0, 0, w, h);
+                
+                // Matikan pelembutan (smoothing)
+                canvasCtx.imageSmoothingEnabled = false;
+                
+                // Perbesar kembali dengan filter mati
+                canvasCtx.drawImage(canvasElement, 0, 0, w, h, 0, 0, canvasElement.width, canvasElement.height);
+            } else {
+                // Gambar normal dengan / tanpa filter
+                canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            }
+            canvasCtx.restore();
+        }
+
+        // Callback ketika Model AI selesai memproses satu frame
+        function onAIResults(results) {
+            // Hapus status "Memuat..." pada UI jika ini adalah frame pertama
+            document.querySelectorAll('.ai-status').forEach(el => el.textContent = "");
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            // 1. Gambar mask (siluet tubuh) yang dikembalikan oleh AI
+            canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+
+            // 2. TIMPA area DALAM mask dengan gambar video asli (Ini menampilkan tubuh Anda)
+            canvasCtx.globalCompositeOperation = 'source-in';
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            // 3. TIMPA area LUAR mask (Background) dengan efek pilihan Anda
+            canvasCtx.globalCompositeOperation = 'destination-atop';
+
+            if (currentMode === 'ai_blur') {
+                // Efek Blur (Gunakan CSS filter pada canvas lalu gambar video asli)
+                canvasCtx.filter = 'blur(15px)';
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            } 
+            else if (currentMode === 'ai_matrix') {
+                // Efek Hacker Matrix
+                drawMatrix(); // Update posisi hujan kode
+                canvasCtx.drawImage(matrixCanvas, 0, 0, canvasElement.width, canvasElement.height);
             }
 
-            const photoUrl = canvas.toDataURL('image/jpeg', 0.9);
-            addToGallery(photoUrl);
+            canvasCtx.restore();
         }
 
-        // Fungsi Frame Polaroid
-        function drawPolaroidFrame(w, h) {
-            const thickBottom = h * 0.20;
-            const borderSize = w * 0.05;
+        // Memulai Kamera
+        startBtn.addEventListener('click', async () => {
+            if (isCameraRunning) return;
             
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, w, borderSize);
-            ctx.fillRect(0, 0, borderSize, h);
-            ctx.fillRect(w - borderSize, 0, borderSize, h);
-            ctx.fillRect(0, h - thickBottom, w, thickBottom);
-            
-            ctx.fillStyle = '#2f3542';
-            const fontSize = Math.floor(h * 0.06);
-            ctx.font = `bold ${fontSize}px 'Poppins', sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('SANPHOTOBOOTH', w / 2, h - (thickBottom / 2));
-        }
+            try {
+                statusEl.classList.remove('hidden');
+                statusEl.textContent = "Meminta akses kamera...";
+                statusEl.className = "mt-3 text-xs text-center text-yellow-400";
+                
+                // Kita gunakan CameraUtils dari MediaPipe yang otomatis menangani loop frame yang optimal
+                cameraUtils = new Camera(videoElement, {
+                    onFrame: async () => {
+                        await processFrame();
+                    },
+                    width: 640,
+                    height: 480
+                });
 
-        // Fungsi Frame Sinematik
-        function drawCinematicFrame(w, h) {
-            const barHeight = h * 0.12;
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, w, barHeight);
-            ctx.fillRect(0, h - barHeight, w, barHeight);
-        }
+                await cameraUtils.start();
+                
+                isCameraRunning = true;
+                
+                // Update UI
+                statusEl.textContent = "Kamera Aktif";
+                statusEl.className = "mt-3 text-xs text-center text-green-400";
+                startBtn.classList.replace('bg-blue-600', 'bg-green-600');
+                startBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
+                startBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Berjalan`;
+                
+                controlsEl.classList.remove('opacity-50', 'pointer-events-none');
+                placeholderText.classList.add('hidden');
+                canvasElement.classList.remove('hidden');
+                
+                // Pra-muat AI di background untuk kenyamanan transisi
+                initAIModel();
 
-        // Tambahkan foto ke UI Galeri
-        function addToGallery(dataUrl) {
-            emptyGalleryMsg.style.display = 'none';
-
-            const item = document.createElement('div');
-            item.className = 'relative flex-shrink-0 group w-32 h-32 sm:w-40 sm:h-40 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg';
-            
-            const img = document.createElement('img');
-            img.src = dataUrl;
-            img.className = 'w-full h-full object-cover';
-            
-            const dlOverlay = document.createElement('div');
-            dlOverlay.className = 'absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300';
-            
-            const dlBtn = document.createElement('a');
-            dlBtn.href = dataUrl;
-            dlBtn.download = `SANPHOTOBOOTH_${new Date().getTime()}.jpg`;
-            dlBtn.className = 'bg-pink-500 hover:bg-pink-600 text-white p-2 rounded-full transform hover:scale-110 transition';
-            dlBtn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh';
-            
-            dlOverlay.appendChild(dlBtn);
-            item.appendChild(img);
-            item.appendChild(dlOverlay);
-            
-            gallery.insertBefore(item, gallery.firstChild);
-        }
-
-        // Event Listeners Utama
-        captureBtn.addEventListener('click', takePhoto);
-        window.addEventListener('load', initCamera);
-
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = "Gagal mengakses kamera. Pastikan izin diberikan.";
+                statusEl.className = "mt-3 text-xs text-center text-red-500";
+            }
+        });
     </script>
 </body>
 </html>
