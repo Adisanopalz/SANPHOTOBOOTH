@@ -55,21 +55,14 @@
         <p class="text-rose-400 font-semibold">Abadikan momen manis bersama pasanganmu 📸</p>
     </header>
 
-    <!-- Main Container -->
-    <main class="w-full max-w-4xl flex flex-col items-center bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-pink-100">
+    <!-- Main Container (Split Layout) -->
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white/90 backdrop-blur-md p-6 lg:p-8 rounded-[2.5rem] shadow-2xl border border-pink-100">
         
-        <!-- Pilihan Tema Strip -->
-        <div id="theme-selector" class="mb-6 flex flex-wrap justify-center gap-4 w-full">
-            <span class="w-full text-center text-sm font-semibold text-gray-500 mb-[-10px]">Pilih Warna Bingkai:</span>
-            <button onclick="setTheme('white', '#ffffff')" class="theme-btn px-4 py-2 rounded-full border-2 border-gray-200 bg-white shadow-sm hover:border-pink-400 transition-colors font-semibold active-theme" id="btn-theme-white">Putih Klasik</button>
-            <button onclick="setTheme('pink', '#ffe4e6')" class="theme-btn px-4 py-2 rounded-full border-2 border-transparent bg-rose-100 text-rose-700 shadow-sm hover:border-pink-400 transition-colors font-semibold" id="btn-theme-pink">Pink Romantis</button>
-            <button onclick="setTheme('dark', '#1f2937')" class="theme-btn px-4 py-2 rounded-full border-2 border-transparent bg-gray-800 text-white shadow-sm hover:border-gray-500 transition-colors font-semibold" id="btn-theme-dark">Hitam Elegan</button>
-        </div>
-
-        <!-- Section 1: Kamera & Pengambilan Gambar -->
-        <section id="camera-section" class="flex flex-col items-center w-full">
-            <div class="relative rounded-2xl overflow-hidden shadow-inner bg-gray-900 border-4 border-pink-200 aspect-[4/3] w-full max-w-[600px]">
-                
+        <!-- KIRI: Viewer Panel (Kamera & Hasil Canvas) -->
+        <div class="lg:col-span-8 flex flex-col items-center justify-center bg-pink-50/50 rounded-3xl p-4 border-2 border-dashed border-pink-200 min-h-[400px]">
+            
+            <!-- View 1: Kamera -->
+            <div id="camera-view" class="relative rounded-2xl overflow-hidden shadow-2xl bg-gray-900 border-4 border-white aspect-[4/3] w-full max-w-[640px]">
                 <!-- Video Feed -->
                 <video id="video" class="w-full h-full object-cover mirror-video" autoplay playsinline></video>
                 
@@ -83,74 +76,120 @@
                 </div>
 
                 <!-- Overlay Countdown -->
-                <div id="countdown-overlay" class="absolute inset-0 flex items-center justify-center hidden bg-black/30 backdrop-blur-sm z-10">
-                    <span id="countdown-text" class="text-8xl md:text-9xl font-bold text-white drop-shadow-[0_0_20px_rgba(255,105,180,0.8)]">3</span>
+                <div id="countdown-overlay" class="absolute inset-0 flex items-center justify-center hidden bg-black/40 backdrop-blur-sm z-10">
+                    <span id="countdown-text" class="text-8xl md:text-9xl font-bold text-white drop-shadow-[0_0_30px_rgba(255,105,180,1)]">3</span>
                 </div>
 
                 <!-- Efek Flash -->
                 <div id="flash-effect" class="absolute inset-0 bg-white opacity-0 pointer-events-none z-20"></div>
-                
-                <!-- Progress Indicator -->
-                <div class="absolute top-4 right-4 bg-white/80 px-3 py-1 text-sm rounded-full font-bold text-rose-500 shadow-sm">
-                    Foto: <span id="photo-count">0</span>/4
+            </div>
+
+            <!-- View 2: Hasil Photo Strip (Hidden by default) -->
+            <div id="result-view" class="hidden flex-col items-center w-full relative">
+                <div class="bg-gray-100 p-4 rounded-xl shadow-inner w-full max-w-sm flex justify-center relative">
+                    <!-- Kanvas tempat merender hasil akhir -->
+                    <canvas id="strip-canvas" class="max-w-full h-auto drop-shadow-2xl"></canvas>
+                </div>
+                <!-- Confetti hiasan -->
+                <div class="absolute top-0 left-10 text-4xl animate-bounce" style="animation-delay: 0.1s">✨</div>
+                <div class="absolute bottom-10 right-10 text-4xl animate-bounce" style="animation-delay: 0.5s">💖</div>
+            </div>
+
+        </div>
+
+        <!-- KANAN: Control Panel (Menu & Interaksi) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Panel Tema -->
+            <div id="theme-selector" class="bg-white p-5 rounded-3xl shadow-sm border border-pink-100">
+                <h3 class="text-sm font-bold text-pink-400 mb-4 uppercase tracking-wider flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM5.828 10.172a4 4 0 00-.586 5.06l-.534.534a3 3 0 104.243 4.242l1.586-1.586a4 4 0 005.06-.586l.534-.534a3 3 0 10-4.243-4.242l-1.586 1.586a4 4 0 00-5.06.586l-.534.534z" clip-rule="evenodd" />
+                    </svg>
+                    Pilih Tema Strip
+                </h3>
+                <div class="flex flex-col gap-3">
+                    <button onclick="setTheme('white', '#ffffff')" class="theme-btn w-full text-left px-4 py-3 rounded-xl border-2 border-pink-400 ring-2 ring-pink-100 bg-white shadow-sm transition-all font-semibold active-theme flex items-center gap-3" id="btn-theme-white">
+                        <span class="w-6 h-6 rounded-full border border-gray-200 bg-white inline-block"></span> Putih Klasik
+                    </button>
+                    <button onclick="setTheme('pink', '#ffe4e6')" class="theme-btn w-full text-left px-4 py-3 rounded-xl border-2 border-transparent bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all font-semibold flex items-center gap-3" id="btn-theme-pink">
+                        <span class="w-6 h-6 rounded-full border border-rose-300 bg-[#ffe4e6] inline-block"></span> Pink Romantis
+                    </button>
+                    <button onclick="setTheme('dark', '#1f2937')" class="theme-btn w-full text-left px-4 py-3 rounded-xl border-2 border-transparent bg-gray-50 text-gray-800 hover:bg-gray-100 transition-all font-semibold flex items-center gap-3" id="btn-theme-dark">
+                        <span class="w-6 h-6 rounded-full border border-gray-600 bg-gray-800 inline-block"></span> Hitam Elegan
+                    </button>
                 </div>
             </div>
 
-            <!-- Kontrol Kamera -->
-            <div class="mt-8 flex gap-4 w-full justify-center">
-                <button id="start-btn" onclick="startPhotoSession()" class="bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all flex items-center gap-2 text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+            <!-- Panel Aksi & Status -->
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-pink-100 flex-1 flex flex-col">
+                <h3 class="text-sm font-bold text-pink-400 mb-4 uppercase tracking-wider flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                    </svg>
+                    Kontrol Kamera
+                </h3>
+                
+                <!-- Indikator Progres (selalu tampil) -->
+                <div class="mb-5 flex justify-between items-center bg-pink-50/50 px-4 py-3 rounded-xl">
+                    <span class="text-gray-600 font-semibold text-sm">Progres Foto:</span>
+                    <div class="bg-white px-3 py-1 rounded-full shadow-sm text-sm border border-pink-100">
+                        <span class="font-bold text-rose-500 text-lg" id="photo-count">0</span>
+                        <span class="text-gray-400 font-semibold">/ 4</span>
+                    </div>
+                </div>
+
+                <!-- Tombol Mulai Foto -->
+                <button id="start-btn" onclick="startPhotoSession()" class="w-full bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transform hover:-translate-y-1 transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    Mulai Foto (4x)
+                    Mulai Sesi (4x)
                 </button>
-            </div>
-            
-            <!-- Mini Gallery Preview -->
-            <div id="mini-gallery" class="mt-6 flex gap-3 h-24">
-                <!-- Foto kecil akan muncul di sini saat diambil -->
-            </div>
-        </section>
 
-        <!-- Section 2: Hasil Photo Strip -->
-        <section id="result-section" class="hidden flex-col items-center w-full">
-            <div class="bg-gray-100 p-4 rounded-xl shadow-inner w-full max-w-sm flex justify-center relative">
-                <!-- Kanvas tempat merender hasil akhir -->
-                <canvas id="strip-canvas" class="max-w-full h-auto drop-shadow-xl"></canvas>
-                
-                <!-- Confetti hiasan -->
-                <div class="absolute -top-4 -left-4 text-3xl animate-bounce" style="animation-delay: 0.1s">✨</div>
-                <div class="absolute -bottom-4 -right-4 text-3xl animate-bounce" style="animation-delay: 0.5s">💖</div>
-            </div>
+                <!-- Tombol Hasil (Hidden saat di mode kamera) -->
+                <div id="result-actions" class="hidden flex-col gap-3 w-full">
+                    <button onclick="downloadStrip()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transform hover:-translate-y-1 transition-all flex items-center justify-center gap-2 text-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Simpan Hasil Strip
+                    </button>
+                    <button onclick="resetApp()" class="w-full bg-white border-2 border-rose-200 text-rose-500 hover:bg-rose-50 font-bold py-3 px-6 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Foto Ulang Sesi
+                    </button>
+                </div>
 
-            <!-- Kontrol Hasil -->
-            <div class="mt-8 flex flex-col sm:flex-row gap-4 w-full justify-center">
-                <button onclick="downloadStrip()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all flex items-center justify-center gap-2 flex-1 max-w-xs">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Simpan Foto
-                </button>
-                <button onclick="resetApp()" class="bg-white border-2 border-rose-300 text-rose-500 hover:bg-rose-50 font-bold py-3 px-8 rounded-full shadow-md transition-all flex items-center justify-center gap-2 flex-1 max-w-xs">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Foto Ulang
-                </button>
+                <!-- Galeri Kecil / Preview -->
+                <div class="mt-6 pt-6 border-t border-pink-100 flex-1">
+                    <h4 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider text-center">Preview Jepretan</h4>
+                    <div id="mini-gallery" class="grid grid-cols-2 gap-3">
+                        <!-- Foto kecil muncul di sini -->
+                        <!-- Placeholder jika kosong -->
+                        <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">1</div>
+                        <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">2</div>
+                        <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">3</div>
+                        <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">4</div>
+                    </div>
+                </div>
+
             </div>
-        </section>
+        </div>
 
     </main>
     
-    <footer class="mt-12 text-gray-400 text-sm">
+    <footer class="mt-8 mb-4 text-gray-400 text-sm font-medium">
         Dibuat dengan ❤️ untuk momen spesial kalian
     </footer>
 
     <script>
         // --- State Variables ---
         let stream = null;
-        let photos = []; // Menyimpan dataURL foto
+        let photos = []; 
         const MAX_PHOTOS = 4;
         let isShooting = false;
         
@@ -167,22 +206,29 @@
         const flashEffect = document.getElementById('flash-effect');
         const photoCountDisplay = document.getElementById('photo-count');
         const miniGallery = document.getElementById('mini-gallery');
-        const cameraSection = document.getElementById('camera-section');
-        const resultSection = document.getElementById('result-section');
+        const cameraView = document.getElementById('camera-view');
+        const resultView = document.getElementById('result-view');
+        const resultActions = document.getElementById('result-actions');
         const stripCanvas = document.getElementById('strip-canvas');
         const themeSelector = document.getElementById('theme-selector');
+
+        // Layout Placeholder (untuk di-reset)
+        const placeholdersHTML = `
+            <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">1</div>
+            <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">2</div>
+            <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">3</div>
+            <div class="aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 placeholder-box">4</div>
+        `;
 
         // --- Inisialisasi ---
         async function initCamera() {
             try {
-                // Minta akses kamera (memprioritaskan kamera depan di HP)
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } },
                     audio: false
                 });
                 video.srcObject = stream;
                 
-                // Sembunyikan loading setelah video mulai main
                 video.onloadedmetadata = () => {
                     cameraLoading.style.display = 'none';
                     startBtn.disabled = false;
@@ -190,15 +236,14 @@
             } catch (err) {
                 console.error("Error mengakses kamera:", err);
                 cameraLoading.innerHTML = `
-                    <div class="text-red-400 text-center px-4">
+                    <div class="text-red-400 text-center px-4 bg-gray-900/80 p-4 rounded-xl backdrop-blur-sm">
                         <p class="font-bold text-lg mb-2">Ups, Kamera Tidak Ditemukan!</p>
-                        <p class="text-sm">Tolong izinkan akses kamera pada browser kamu untuk menggunakan photobooth ini.</p>
+                        <p class="text-sm">Tolong izinkan akses kamera pada browser kamu.</p>
                     </div>
                 `;
             }
         }
 
-        // Panggil init saat halaman dimuat
         window.addEventListener('DOMContentLoaded', initCamera);
 
         // --- Ganti Tema ---
@@ -206,23 +251,25 @@
             currentThemeId = id;
             currentBgColor = color;
             
-            // Update styling tombol
+            // Update styling tombol dengan menghapus state aktif dari semua tombol
             document.querySelectorAll('.theme-btn').forEach(btn => {
-                btn.classList.remove('border-pink-400', 'ring-2', 'ring-pink-200');
-                if(btn.id !== 'btn-theme-dark' && btn.id !== 'btn-theme-pink') btn.classList.add('border-transparent');
+                btn.classList.remove('border-pink-400', 'ring-2', 'ring-pink-100', 'bg-white', 'shadow-sm');
+                if(btn.id !== `btn-theme-${id}`) {
+                    btn.classList.add('border-transparent');
+                }
             });
             
+            // Tambahkan styling aktif ke tombol yang dipilih
             const activeBtn = document.getElementById(`btn-theme-${id}`);
             activeBtn.classList.remove('border-transparent');
-            activeBtn.classList.add('border-pink-400', 'ring-2', 'ring-pink-200');
+            activeBtn.classList.add('border-pink-400', 'ring-2', 'ring-pink-100', 'bg-white', 'shadow-sm');
 
-            // Jika sedang di halaman hasil, render ulang kanvas
+            // Render ulang jika ada di halaman hasil
             if (photos.length === MAX_PHOTOS && !isShooting) {
                 renderPhotoStrip();
             }
         }
         
-        // Set tema awal
         setTheme('white', '#ffffff');
 
         // --- Logika Pengambilan Foto ---
@@ -230,56 +277,59 @@
             if (isShooting) return;
             isShooting = true;
             photos = [];
-            miniGallery.innerHTML = '';
+            
+            // Bersihkan placeholder, siap menerima foto
+            miniGallery.innerHTML = ''; 
             photoCountDisplay.innerText = '0';
+            
+            // Update UI saat memotret
             startBtn.disabled = true;
-            themeSelector.classList.add('opacity-50', 'pointer-events-none');
+            themeSelector.classList.add('opacity-60', 'pointer-events-none');
 
-            // Ambil foto sebanyak MAX_PHOTOS (4 kali)
             for (let i = 0; i < MAX_PHOTOS; i++) {
                 await runCountdown(3);
                 const photoDataUrl = captureFrame();
                 photos.push(photoDataUrl);
                 
-                // Update UI
                 photoCountDisplay.innerText = photos.length;
                 addMiniPreview(photoDataUrl);
                 
-                // Jeda sebentar sebelum foto berikutnya
                 if (i < MAX_PHOTOS - 1) {
                     await new Promise(r => setTimeout(r, 1000));
                 }
             }
 
-            // Selesai ambil foto
             isShooting = false;
-            startBtn.innerText = "Memproses...";
+            startBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses...
+            `;
             
             setTimeout(() => {
                 showResult();
             }, 1000);
         }
 
-        // Jalankan hitung mundur
         function runCountdown(seconds) {
             return new Promise(resolve => {
                 countdownOverlay.classList.remove('hidden');
                 let counter = seconds;
                 countdownText.innerText = counter;
-                countdownText.classList.remove('animate-ping'); // reset animasi
+                countdownText.classList.remove('animate-ping'); 
 
                 const interval = setInterval(() => {
                     counter--;
                     if (counter > 0) {
                         countdownText.innerText = counter;
-                        // trigger reflow untuk animasi ulang jika mau
                     } else {
                         clearInterval(interval);
                         countdownOverlay.classList.add('hidden');
                         
-                        // Efek Flash
                         flashEffect.classList.remove('animate-flash');
-                        void flashEffect.offsetWidth; // trigger reflow
+                        void flashEffect.offsetWidth; 
                         flashEffect.classList.add('animate-flash');
                         
                         resolve();
@@ -288,20 +338,15 @@
             });
         }
 
-        // Ambil frame dari tag <video> dan ubah ke Base64 (DataURL)
         function captureFrame() {
             const canvas = document.createElement('canvas');
-            // Gunakan rasio 4:3
             canvas.width = 640; 
             canvas.height = 480;
             const ctx = canvas.getContext('2d');
 
-            // Karena video kita di-mirror di CSS, kita harus mirror juga saat menggambar ke canvas
-            // agar hasilnya sama persis dengan yang dilihat user
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             
-            // Perhitungan untuk crop object-fit cover sederhana
             const videoRatio = video.videoWidth / video.videoHeight;
             const canvasRatio = canvas.width / canvas.height;
             let drawWidth = canvas.width;
@@ -318,46 +363,46 @@
             }
 
             ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
-            
             return canvas.toDataURL('image/jpeg', 0.9);
         }
 
-        // Tambahkan thumbnail kecil di bawah kamera
         function addMiniPreview(dataUrl) {
             const img = document.createElement('img');
             img.src = dataUrl;
-            img.className = "h-full w-auto aspect-[4/3] object-cover rounded-md border-2 border-white shadow-sm pop-in";
+            img.className = "w-full aspect-[4/3] object-cover rounded-lg border-2 border-white shadow-md pop-in";
             miniGallery.appendChild(img);
         }
 
         // --- Render & Output ---
-
-        // Fungsi bantuan untuk load image dari data url
         const loadImage = (src) => new Promise((resolve) => {
             const img = new Image();
             img.onload = () => resolve(img);
             img.src = src;
         });
 
-        // Beralih ke layar hasil dan gambar photo strip
         async function showResult() {
-            cameraSection.classList.add('hidden');
-            resultSection.classList.remove('hidden');
-            themeSelector.classList.remove('opacity-50', 'pointer-events-none');
+            // Sembunyikan kamera, tampilkan canvas
+            cameraView.classList.add('hidden');
+            resultView.classList.remove('hidden');
+            resultView.classList.add('flex'); // Pastikan flex aktif
+            
+            // Sembunyikan tombol mulai, tampilkan tombol aksi
+            startBtn.classList.add('hidden');
+            resultActions.classList.remove('hidden');
+            resultActions.classList.add('flex');
+
+            themeSelector.classList.remove('opacity-60', 'pointer-events-none');
             
             await renderPhotoStrip();
             
-            // Matikan kamera untuk menghemat baterai saat melihat hasil
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
         }
 
-        // Menggambar 4 foto ke satu canvas besar (Photo Strip)
         async function renderPhotoStrip() {
             const ctx = stripCanvas.getContext('2d');
             
-            // Setup Dimensi Strip
             const photoWidth = 600;
             const photoHeight = 450;
             const padding = 40;
@@ -367,16 +412,13 @@
             stripCanvas.width = photoWidth + (padding * 2);
             stripCanvas.height = (padding * 2) + (photoHeight * 4) + (gap * 3) + bottomTextSpace;
 
-            // Gambar Background
             ctx.fillStyle = currentBgColor;
             ctx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
 
-            // Load dan gambar semua foto
             for (let i = 0; i < photos.length; i++) {
                 const img = await loadImage(photos[i]);
                 const yPos = padding + (i * (photoHeight + gap));
                 
-                // Gambar shadow ringan di belakang foto (opsional, bagus untuk tema terang)
                 if(currentThemeId === 'white' || currentThemeId === 'pink') {
                     ctx.shadowColor = 'rgba(0,0,0,0.1)';
                     ctx.shadowBlur = 10;
@@ -387,30 +429,23 @@
 
                 ctx.drawImage(img, padding, yPos, photoWidth, photoHeight);
                 
-                // Reset shadow
                 ctx.shadowColor = 'transparent';
                 
-                // Tambahkan border tipis/efek di atas foto
                 ctx.strokeStyle = currentThemeId === 'dark' ? '#374151' : '#fce7f3';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(padding, yPos, photoWidth, photoHeight);
             }
 
-            // --- Gambar Teks dan Hiasan di Bawah ---
             const textY = stripCanvas.height - (bottomTextSpace / 2);
-            
-            // Tentukan warna teks berdasarkan tema
-            const textColor = currentThemeId === 'dark' ? '#fdf2f8' : '#e11d48'; // dark text atau rose-600
+            const textColor = currentThemeId === 'dark' ? '#fdf2f8' : '#e11d48'; 
             const secondaryTextColor = currentThemeId === 'dark' ? '#9ca3af' : '#6b7280';
             
-            // Judul (Dancing Script)
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillStyle = textColor;
             ctx.font = "bold 80px 'Dancing Script', cursive";
             ctx.fillText("You & Me", stripCanvas.width / 2, textY - 20);
 
-            // Tanggal (Quicksand)
             const today = new Date();
             const dateString = today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             
@@ -418,14 +453,12 @@
             ctx.font = "bold 28px 'Quicksand', sans-serif";
             ctx.fillText(dateString, stripCanvas.width / 2, textY + 50);
 
-            // Gambar Hati (Logo)
-            ctx.fillStyle = "#f43f5e"; // rose-500
+            ctx.fillStyle = "#f43f5e"; 
             ctx.font = "40px Arial";
             ctx.fillText("♥", stripCanvas.width / 2 - 160, textY - 20);
             ctx.fillText("♥", stripCanvas.width / 2 + 160, textY - 20);
         }
 
-        // Unduh gambar
         function downloadStrip() {
             const dataUrl = stripCanvas.toDataURL('image/png');
             const a = document.createElement('a');
@@ -436,21 +469,29 @@
             document.body.removeChild(a);
         }
 
-        // Reset kembali ke kamera awal
         async function resetApp() {
-            resultSection.classList.add('hidden');
-            cameraSection.classList.remove('hidden');
+            // Kembalikan view
+            resultView.classList.add('hidden');
+            resultView.classList.remove('flex');
+            cameraView.classList.remove('hidden');
             
+            // Kembalikan tombol
+            resultActions.classList.add('hidden');
+            resultActions.classList.remove('flex');
+            startBtn.classList.remove('hidden');
+            
+            // Reset Data
             photos = [];
-            miniGallery.innerHTML = '';
+            miniGallery.innerHTML = placeholdersHTML; // Kembalikan placeholder
             photoCountDisplay.innerText = '0';
-            startBtn.innerText = "Mulai Foto (4x)";
+            
+            // Reset Tombol Mulai
             startBtn.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Mulai Foto (4x)
+                Mulai Sesi (4x)
             `;
             startBtn.disabled = false;
             cameraLoading.style.display = 'flex';
