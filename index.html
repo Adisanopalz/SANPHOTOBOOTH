@@ -3,192 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SANPHOTOBOOTH</title>
+    <title>SANPHOTOBOOTH PRO</title>
+    <!-- Menggunakan Tailwind CSS untuk styling super cepat & modern -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome untuk Icon -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* CSS untuk Desain dan Responsivitas */
-        :root {
-            --primary-color: #ff4757;
-            --bg-color: #f1f2f6;
-            --text-color: #2f3542;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f172a, #312e81, #4c1d95);
+            background-attachment: fixed;
         }
 
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-            color: var(--primary-color);
+        /* Mirror video untuk kamera depan agar natural */
+        .mirrored {
+            transform: scaleX(-1);
         }
 
-        .app-container {
-            width: 100%;
-            max-width: 500px;
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        /* Animasi Flash */
+        .flash-active {
+            animation: flashAnim 0.5s ease-out forwards;
         }
 
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            border-radius: 10px;
-            overflow: hidden;
-            background-color: #000;
+        @keyframes flashAnim {
+            0% { background-color: rgba(255, 255, 255, 1); opacity: 1; }
+            100% { background-color: rgba(255, 255, 255, 0); opacity: 0; display: none; }
         }
 
-        /* Membalikkan video seperti cermin agar natural */
-        video {
-            width: 100%;
-            display: block;
-            transform: scaleX(-1); 
+        /* Glassmorphism panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
+        /* Animasi Hitung Mundur */
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+        .countdown-text {
+            animation: pop 1s ease-in-out;
         }
 
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        /* Scrollbar kustom untuk galeri */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
         }
-
-        #snapBtn {
-            background-color: var(--primary-color);
-            color: white;
-            flex-grow: 1;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
         }
-
-        #snapBtn:hover {
-            background-color: #ff6b81;
-        }
-
-        #downloadBtn {
-            background-color: #2ed573;
-            color: white;
-        }
-
-        #downloadBtn:disabled {
-            background-color: #a4b0be;
-            cursor: not-allowed;
-        }
-
-        #downloadBtn:hover:not(:disabled) {
-            background-color: #26de81;
-        }
-
-        /* Area hasil foto */
-        .result-area {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .result-area h3 {
-            margin: 0 0 10px 0;
-            font-size: 1.2rem;
-        }
-
-        #photo {
-            width: 100%;
-            border-radius: 10px;
-            border: 3px solid var(--primary-color);
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
         }
     </style>
 </head>
-<body>
+<body class="text-white min-h-screen flex flex-col items-center p-4 sm:p-8">
 
-    <h1>SANPHOTOBOOTH 📸</h1>
+    <!-- Header -->
+    <header class="text-center mb-6">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 tracking-wider">
+            SANPHOTOBOOTH <i class="fa-solid fa-camera-retro text-pink-400"></i>
+        </h1>
+        <p class="text-gray-300 mt-2 text-sm sm:text-base">Tangkap momen terbaikmu dengan gaya.</p>
+    </header>
 
-    <div class="app-container">
-        <div class="video-wrapper">
-            <video id="video" autoplay playsinline></video>
-        </div>
+    <!-- Main App Container -->
+    <div class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <canvas id="canvas" style="display:none;"></canvas>
+        <!-- Kolom Kiri: Kamera & Kontrol Utama -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            
+            <!-- Video Container -->
+            <div class="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 group">
+                <!-- Video Stream -->
+                <video id="video" class="w-full h-full object-cover mirrored" autoplay playsinline></video>
+                
+                <!-- Overlay Flash -->
+                <div id="flashOverlay" class="absolute inset-0 bg-white opacity-0 pointer-events-none z-20"></div>
+                
+                <!-- Overlay Hitung Mundur -->
+                <div id="countdownOverlay" class="absolute inset-0 flex items-center justify-center z-10 hidden">
+                    <span id="countdownText" class="text-8xl font-bold text-white drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]">3</span>
+                </div>
 
-        <div class="controls">
-            <button id="snapBtn">Ambil Foto!</button>
-            <button id="downloadBtn" disabled>Unduh</button>
+                <!-- Error Message Box -->
+                <div id="errorBox" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-30 hidden p-6 text-center">
+                    <i class="fa-solid fa-video-slash text-4xl text-red-500 mb-3"></i>
+                    <h3 class="font-bold text-xl mb-2">Akses Kamera Ditolak</h3>
+                    <p class="text-sm text-gray-400">Harap izinkan akses kamera di browser Anda untuk menggunakan photobooth ini.</p>
+                    <button onclick="initCamera()" class="mt-4 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-semibold transition">Coba Lagi</button>
+                </div>
+            </div>
+
+            <!-- Kontrol Utama (Capture & Switch Camera) -->
+            <div class="glass-panel rounded-2xl p-4 flex justify-between items-center shadow-lg">
+                <button id="switchCamBtn" class="p-3 bg-white/10 hover:bg-white/20 rounded-full transition" title="Ganti Kamera">
+                    <i class="fa-solid fa-rotate text-xl"></i>
+                </button>
+                
+                <button id="captureBtn" class="group relative w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:scale-105 transition transform">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-tr from-pink-500 to-indigo-500 rounded-full border-2 border-white group-active:scale-95 transition"></div>
+                </button>
+
+                <!-- Timer Toggle -->
+                <button id="timerBtn" class="p-3 bg-indigo-500/80 hover:bg-indigo-500 rounded-full transition flex items-center gap-2" title="Gunakan Timer 3 Detik">
+                    <i class="fa-solid fa-stopwatch text-xl"></i>
+                    <span id="timerStatus" class="font-bold text-sm hidden sm:inline">On</span>
+                </button>
+            </div>
         </div>
 
-        <div class="result-area" id="resultArea">
-            <h3>Hasil Jepretan:</h3>
-            <img id="photo" alt="Hasil Foto">
+        <!-- Kolom Kanan: Pengaturan Filter & Frame -->
+        <div class="glass-panel rounded-2xl p-6 flex flex-col gap-6 shadow-lg h-fit">
+            
+            <!-- Filters -->
+            <div>
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-pink-400"></i> Filter Warna</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="filter-btn active bg-indigo-600 hover:bg-indigo-500 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="none">Normal</button>
+                    <button class="filter-btn bg-white/10 hover:bg-white/20 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="grayscale(100%)">B/W</button>
+                    <button class="filter-btn bg-white/10 hover:bg-white/20 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="sepia(100%)">Sepia</button>
+                    <button class="filter-btn bg-white/10 hover:bg-white/20 py-2 rounded-lg text-sm font-medium transition border-2 border-transparent" data-filter="invert(100%)">Invert</button>
+                </div>
+            </div>
+
+            <hr class="border-white/10">
+
+            <!-- Frames -->
+            <div>
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fa-solid fa-border-all text-indigo-400"></i> Bingkai (Frame)</h3>
+                <div class="flex flex-col gap-2">
+                    <button class="frame-btn active bg-indigo-600 hover:bg-indigo-500 py-2 px-4 rounded-lg text-sm font-medium transition text-left" data-frame="none">Tanpa Bingkai</button>
+                    <button class="frame-btn bg-white/10 hover:bg-white/20 py-2 px-4 rounded-lg text-sm font-medium transition text-left flex justify-between" data-frame="polaroid">Polaroid <i class="fa-solid fa-image"></i></button>
+                    <button class="frame-btn bg-white/10 hover:bg-white/20 py-2 px-4 rounded-lg text-sm font-medium transition text-left flex justify-between" data-frame="cinematic">Sinematik <i class="fa-solid fa-film"></i></button>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Galeri Hasil Jepretan -->
+    <div class="w-full max-w-4xl mt-8">
+        <h3 class="font-bold text-xl mb-4 flex items-center gap-2"><i class="fa-solid fa-images"></i> Galeri Photobooth</h3>
+        <div id="gallery" class="flex gap-4 overflow-x-auto custom-scrollbar pb-4 min-h-[150px] items-center">
+            <p id="emptyGalleryMsg" class="text-gray-400 text-sm italic w-full text-center">Belum ada foto. Ayo mulai memotret!</p>
+            <!-- Foto akan muncul di sini -->
+        </div>
+    </div>
+
+    <!-- Canvas Tersembunyi untuk Pemrosesan -->
+    <canvas id="canvas" class="hidden"></canvas>
+
     <script>
-        // JavaScript untuk Logika Kamera
+        // DOM Elements
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const photo = document.getElementById('photo');
-        const snapBtn = document.getElementById('snapBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const resultArea = document.getElementById('resultArea');
-        const context = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d');
+        const captureBtn = document.getElementById('captureBtn');
+        const switchCamBtn = document.getElementById('switchCamBtn');
+        const timerBtn = document.getElementById('timerBtn');
+        const timerStatus = document.getElementById('timerStatus');
+        const flashOverlay = document.getElementById('flashOverlay');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownText = document.getElementById('countdownText');
+        const errorBox = document.getElementById('errorBox');
+        const gallery = document.getElementById('gallery');
+        const emptyGalleryMsg = document.getElementById('emptyGalleryMsg');
+        
+        // Buttons List
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const frameBtns = document.querySelectorAll('.frame-btn');
 
-        // Meminta izin dan menyalakan kamera
-        // 'facingMode: "user"' memprioritaskan kamera depan di HP
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
-            .then(function(stream) {
+        // State variables
+        let currentStream = null;
+        let facingMode = 'user'; // 'user' (depan) atau 'environment' (belakang)
+        let useTimer = true;
+        let activeFilter = 'none';
+        let activeFrame = 'none';
+        let isCapturing = false;
+
+        // Inisialisasi Kamera
+        async function initCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                const constraints = {
+                    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                currentStream = stream;
                 video.srcObject = stream;
-            })
-            .catch(function(err) {
-                console.error("Terjadi kesalahan akses kamera: ", err);
-                alert("Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin kamera pada browser.");
-            });
+                
+                // Atur mirror efek berdasarkan kamera depan/belakang
+                if (facingMode === 'user') {
+                    video.classList.add('mirrored');
+                } else {
+                    video.classList.remove('mirrored');
+                }
+                
+                errorBox.classList.add('hidden');
+            } catch (err) {
+                console.error("Akses kamera gagal:", err);
+                errorBox.classList.remove('hidden');
+            }
+        }
 
-        // Event saat tombol 'Ambil Foto' diklik
-        snapBtn.addEventListener('click', function() {
-            // Sesuaikan ukuran canvas dengan resolusi video asli
+        // Event: Ganti Kamera
+        switchCamBtn.addEventListener('click', () => {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            initCamera();
+        });
+
+        // Event: Toggle Timer
+        timerBtn.addEventListener('click', () => {
+            useTimer = !useTimer;
+            if (useTimer) {
+                timerBtn.classList.replace('bg-white/10', 'bg-indigo-500/80');
+                timerStatus.textContent = 'On';
+            } else {
+                timerBtn.classList.replace('bg-indigo-500/80', 'bg-white/10');
+                timerStatus.textContent = 'Off';
+            }
+        });
+
+        // Event: Pilih Filter
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update UI Buttons
+                filterBtns.forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'active');
+                    b.classList.add('bg-white/10');
+                });
+                e.target.classList.remove('bg-white/10');
+                e.target.classList.add('bg-indigo-600', 'active');
+
+                // Set Filter state & apply to video preview
+                activeFilter = e.target.getAttribute('data-filter');
+                video.style.filter = activeFilter !== 'none' ? activeFilter : '';
+            });
+        });
+
+        // Event: Pilih Bingkai (Frame)
+        frameBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update UI Buttons
+                frameBtns.forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'active');
+                    b.classList.add('bg-white/10');
+                });
+                e.target.classList.remove('bg-white/10');
+                e.target.classList.add('bg-indigo-600', 'active');
+
+                // Set Frame state
+                activeFrame = e.target.getAttribute('data-frame');
+            });
+        });
+
+        // Fungsi Ambil Foto Utama
+        async function takePhoto() {
+            if (isCapturing) return;
+            isCapturing = true;
+
+            if (useTimer) {
+                countdownOverlay.classList.remove('hidden');
+                for (let i = 3; i > 0; i--) {
+                    countdownText.textContent = i;
+                    
+                    // Reset animasi agar pop tiap detik
+                    countdownText.style.animation = 'none';
+                    countdownText.offsetHeight; /* trigger reflow */
+                    countdownText.style.animation = null; 
+                    countdownText.classList.add('countdown-text');
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                countdownOverlay.classList.add('hidden');
+            }
+
+            // Eksekusi efek flash
+            flashOverlay.classList.remove('hidden');
+            flashOverlay.classList.add('flash-active');
+            
+            setTimeout(() => {
+                flashOverlay.classList.remove('flash-active');
+                flashOverlay.classList.add('hidden');
+                processImage();
+                isCapturing = false;
+            }, 100); // Eksekusi proses sesaat setelah flash muncul
+        }
+
+        // Fungsi Memproses Canvas (Filter + Bingkai)
+        function processImage() {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // Karena video kita di-mirror (dibalik), hasil canvas juga harus di-mirror
-            context.translate(canvas.width, 0);
-            context.scale(-1, 1);
-            
-            // Menggambar frame video ke dalam canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Mengubah canvas menjadi data gambar (URL)
-            const dataURL = canvas.toDataURL('image/png');
-            photo.src = dataURL;
-            
-            // Tampilkan area hasil dan aktifkan tombol unduh
-            resultArea.style.display = 'block';
-            downloadBtn.disabled = false;
-        });
+            // 1. Tangani Orientasi (Mirror)
+            ctx.save();
+            if (facingMode === 'user') {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
 
-        // Event saat tombol 'Unduh' diklik
-        downloadBtn.addEventListener('click', function() {
-            const a = document.createElement('a');
-            a.href = photo.src;
-            // Penamaan file dinamis berdasarkan waktu
-            a.download = 'SANPHOTOBOOTH_' + new Date().getTime() + '.png';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
+            // 2. Terapkan Filter
+            ctx.filter = activeFilter !== 'none' ? activeFilter : 'none';
+
+            // 3. Gambar Frame Video
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Restore context (hapus efek mirror dan filter untuk menggambar frame)
+            ctx.restore();
+
+            // 4. Tambahkan Bingkai (Custom Drawing)
+            if (activeFrame === 'polaroid') {
+                drawPolaroidFrame(canvas.width, canvas.height);
+            } else if (activeFrame === 'cinematic') {
+                drawCinematicFrame(canvas.width, canvas.height);
+            }
+
+            // 5. Ekspor dan Tampilkan
+            const photoUrl = canvas.toDataURL('image/jpeg', 0.9);
+            addToGallery(photoUrl);
+        }
+
+        // Gambar Bingkai Polaroid
+        function drawPolaroidFrame(w, h) {
+            const thickBottom = h * 0.20;
+            const borderSize = w * 0.05;
+            
+            ctx.fillStyle = '#ffffff';
+            // Atas
+            ctx.fillRect(0, 0, w, borderSize);
+            // Kiri
+            ctx.fillRect(0, 0, borderSize, h);
+            // Kanan
+            ctx.fillRect(w - borderSize, 0, borderSize, h);
+            // Bawah
+            ctx.fillRect(0, h - thickBottom, w, thickBottom);
+            
+            // Teks
+            ctx.fillStyle = '#2f3542';
+            const fontSize = Math.floor(h * 0.06);
+            ctx.font = `bold ${fontSize}px 'Poppins', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Tambahkan tulisan di area bawah polaroid
+            ctx.fillText('SANPHOTOBOOTH', w / 2, h - (thickBottom / 2));
+        }
+
+        // Gambar Bingkai Sinematik
+        function drawCinematicFrame(w, h) {
+            const barHeight = h * 0.12; // 12% dari tinggi untuk bar hitam atas bawah
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, w, barHeight);
+            ctx.fillRect(0, h - barHeight, w, barHeight);
+        }
+
+        // Tambahkan foto ke UI Galeri
+        function addToGallery(dataUrl) {
+            emptyGalleryMsg.style.display = 'none';
+
+            const item = document.createElement('div');
+            item.className = 'relative flex-shrink-0 group w-32 h-32 sm:w-40 sm:h-40 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg';
+            
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.className = 'w-full h-full object-cover';
+            
+            // Tombol Unduh Overlay
+            const dlOverlay = document.createElement('div');
+            dlOverlay.className = 'absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300';
+            
+            const dlBtn = document.createElement('a');
+            dlBtn.href = dataUrl;
+            dlBtn.download = `SANPHOTOBOOTH_${new Date().getTime()}.jpg`;
+            dlBtn.className = 'bg-pink-500 hover:bg-pink-600 text-white p-2 rounded-full transform hover:scale-110 transition';
+            dlBtn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh';
+            
+            dlOverlay.appendChild(dlBtn);
+            item.appendChild(img);
+            item.appendChild(dlOverlay);
+            
+            // Tambahkan di awal galeri (paling kiri)
+            gallery.insertBefore(item, gallery.firstChild);
+        }
+
+        // Event: Tombol Jepret
+        captureBtn.addEventListener('click', takePhoto);
+
+        // Jalankan kamera saat pertama kali dimuat
+        window.addEventListener('load', initCamera);
+
     </script>
 </body>
 </html>
